@@ -3,7 +3,9 @@
 <html>
 <head>
  <link rel="stylesheet" type="text/css" href="script/style.css">
- <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.4.2/pure-min.css">
+ <link rel="stylesheet" href="script/pure-min.css">
+ <link rel="stylesheet" href="script/font.css">
+<link rel="stylesheet" href="script/baby-blue.css">
   </head>
   <body>
           <style scoped>
@@ -24,8 +26,15 @@
 
     <div id="container">
 {% include "/header.html" %}
+
+    <div id="content">
+        <h2>
+        Rule-based modeling visualization
+      </h2>
+
         <form action="{{ action }}" class="pure-form pure-form-stacked" method="post" enctype="multipart/form-data">
-    Model submission: <br>
+        <fieldset>
+    <legend>Model submission: </legend>
       Upload File: <input type="file" class="pure-button" name="file"><br> 
       
       
@@ -36,6 +45,7 @@
       </select><br/>
 
       <input class="button-success pure-button" type="submit" value="Submit">
+      </fieldset>
     </form>
 
     </div>

@@ -24,21 +24,32 @@
   
     </style>
 
+
     <div id="container">
 {% include "/header.html" %}
 
+
     <div id="content">
       <h2>
-        Annotation propagation
+        Model Comparison
       </h2>
+
 
         <form action="{{ action }}" class="pure-form  pure-form-stacked" method="post" enctype="multipart/form-data">
         <fieldset>
-    <legend>Model to expand annotation on: </legend>
-      <input type="file" class="pure-button" name="file"><br> 
-      
-      
-
+        
+    <legend>Models to compare: </legend>
+    <div class="pure-g">
+    <div class="pure-u-md-11-24">
+      <label for="file">Base File</label>       
+      <input id="file" type="file" class="pure-button" name="file" />
+      </div>
+      <div class="pure-u-md-11-24">
+      <label for="file2">Comparison File</label> 
+      <input id="file2" type="file" class="pure-button" name="file2" />
+      </div>
+      </div>
+      <br/>
       <input class="button-success pure-button" type="submit" value="Submit">
       </fieldset>
     </form>
@@ -48,6 +59,10 @@
     <br/>
     <br/>
     <br/>
+
+
+
+
 
     <div id="footer">
       Copyright © Jose Juan Tapia, 2015

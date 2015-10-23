@@ -12,21 +12,23 @@ import os
 from google.appengine.ext.webapp import blobstore_handlers
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
+from google.appengine.api import app_identity
+
+import logging
 
 import xmlrpclib
 import urllib
 import json
-from google.appengine.api import files
-from google.appengine.api import app_identity
-
+import WaitFile
+from collections import defaultdict
+import yaml
 
 from google.appengine.api import urlfetch
 urlfetch.set_default_fetch_deadline(60)
-import logging
-import cloudstorage as gcs
 
 
 class GAEXMLRPCTransport(object):
+
     """taken directly from http://brizzled.clapper.org/blog/2008/08/25/making-xmlrpc-calls-from-a-google-app-engine-application/"""
     """Handles an HTTP transaction to an XML-RPC server."""
 
@@ -71,46 +73,94 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 
 DATABASE_NAME = 'models'
 
+
 class ModelInfo(ndb.Model):
+
     """Models an individual Guestbook entry with author, content, and date."""
-    content = ndb.BlobKeyProperty() #BlobInfo(blobkey)
+    content = ndb.BlobKeyProperty()  # BlobInfo(blobkey)
 
 
 class MainPage(webapp2.RequestHandler):
+
     def get(self):
         template_values = {
-        
+
         }
-        template =JINJA_ENVIRONMENT.get_template('index.html')
+        template = JINJA_ENVIRONMENT.get_template('index.html')
         self.response.write(template.render(template_values))
 
-    
+
 def dbmodel_key(model_name=DATABASE_NAME):
     """Constructs a Datastore key for a ModelDB entity with model_name."""
     return ndb.Key('ModelDB', model_name)
-    
-    
-remoteServer = "http://54.214.249.43:9000"
-#remoteServer = "http://127.0.0.1:9000"
+
+
+#remoteServer = "http://54.214.249.43:9000"
+remoteServer = "http://127.0.0.1:9000"
+
+
 class Translate(webapp2.RequestHandler):
+
     """
     Class frontend manager for the translate page. Calls the template that the user sees.
     """
+
     def get(self):
         upload_url = blobstore.create_upload_url('/process')
-        
+
         #reactionFiles,speciesFiles = s.getSpeciesConventions()
-        #print '-----',reactionFiles,speciesFiles
-        template_values={
-            'action' : upload_url,
+        # print '-----',reactionFiles,speciesFiles
+        template_values = {
+            'action': upload_url,
             #'reactionDefinition' : ['1','2','3','4','5','6','7','8','9','10','a','b','c']
             #'reactionDefinition' : reactionFiles,
             #'speciesDefinition': speciesFiles
         }
-        template =JINJA_ENVIRONMENT.get_template('translate.html')
+        template = JINJA_ENVIRONMENT.get_template('translate.html')
         self.response.write(template.render(template_values))
 
+class ProcessComparison(blobstore_handlers.BlobstoreUploadHandler):
+    def post(self):
+        """
+        Process the file comparison form contained in comparison.html. Sends the bngl files to a server
+        and returns a list of molecule types to match up. 
+        """
+
+        bucket_name = os.environ.get('BUCKET_NAME',
+                             app_identity.get_default_gcs_bucket_name())
+
+        upload_files = self.get_uploads('file')
+        upload_files2 = self.get_uploads('file2')
+        blob_info = upload_files[0]
+        reader = blob_info.open()
+        bnglContent = reader.read()
+        blob_info2 = upload_files2[0]
+        reader2 = blob_info2.open()
+        bnglContent2 = reader2.read()
+
+        # stores files in the gcs data store for later use.
+        element = blob_info.filename
+        element2 = blob_info2.filename
+        
+        gcs_filename = '/{1}/{0}'.format(element, bucket_name)
+        blob_key = WaitFile.CreateFile(gcs_filename, bnglContent.decode('utf-8', 'replace'))
+
+        gcs_filename2 = '/{1}/{0}'.format(element2, bucket_name)
+        blob_key2 = WaitFile.CreateFile(gcs_filename2, bnglContent2.decode('utf-8', 'replace'))
+        
+
+
+        bnglContent = xmlrpclib.Binary(bnglContent)
+        bnglContent2 = xmlrpclib.Binary(bnglContent2)
+
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
+        ticket = s.getMoleculeTypes(bnglContent,bnglContent2)
+        # self.response.write(result)
+
+        self.redirect('/waitFile?ticket={0}&fileName={1}&fileName2={2}&blob1={3}&blob2={4}&resultMethod=compare'.format(ticket, element, element2, blob_key, blob_key2))
+
 class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
+
     def post(self):
         """
         Process the file translation form contained in translate.html. Calls a remove service defined
@@ -123,31 +173,33 @@ class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
         atomizeString = self.request.get('atomize')
         reaction = self.request.get('reaction')
         species = self.request.get('species')
-        #print 'fsdgsdgsd',atomize
-        #https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
-        #https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
-        s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
+        # print 'fsdgsdgsd',atomize
+        # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
+        # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
-        ticket = s.atomize(sbmlContent,atomizeString,reaction,species)
-        #self.response.write(result)
-        
-        self.redirect('/waitFile?ticket={0}&fileName={1}'.format(ticket,blob_info.filename))
+        ticket = s.atomize(sbmlContent, atomizeString, reaction, species)
+        # self.response.write(result)
+
+        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl'.format(ticket, blob_info.filename))
 
 
 class WaitFileJson(webapp2.RequestHandler):
+
     def get(self):
         ticket = self.request.get("ticket")
-        s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         result = s.isready(int(ticket))
-        resultJson = {'result':result}
+        resultJson = {'result': result}
         resultJson = json.dumps(resultJson)
         self.response.headers.add_header('content-type', 'application/json', charset='utf-8')
         self.response.out.write(resultJson)
-    
-import re
+
+
 class generateConfigFile(webapp2.RequestHandler):
+
     def processPattern(self, pattern):
-        #speciesDefinition = re.
+        # speciesDefinition = re.
         pass
 
     def get(self):
@@ -155,154 +207,132 @@ class generateConfigFile(webapp2.RequestHandler):
         patterns = self.request.get_all("patterns")
         results = {'complexDefinition': [], 'reactionDefinition': []}
 
-        for name,pattern in zip(names,patterns):
+        for name, pattern in zip(names, patterns):
             processedPattern = self.processPattern(pattern)
-            #result.
+            # result.
 
 
-def CreateFile(filename,content):
-    """Create a GCS file with GCS client lib.
-
-    Args:
-    filename: GCS filename.
-
-    Returns:
-    The corresponding string blobkey for this GCS file.
-    """
-    # Create a GCS file with GCS client.
-    with gcs.open(filename, 'w') as f:
-        f.write(content.encode('utf-8', 'replace'))
-
-    # Blobstore API requires extra /gs to distinguish against blobstore files.
-    blobstore_filename = '/gs' + filename
-    # This blob_key works with blobstore APIs that do not expect a
-    # corresponding BlobInfo in datastore.
-    bk =  blobstore.create_gs_key(blobstore_filename)
-    if not isinstance(bk, blobstore.BlobKey):
-        bk = blobstore.BlobKey(bk)
-    return bk
-
-class WaitFile(webapp2.RequestHandler):
-    """
-    manages the waiting between the time a file is sent to the remote server and the time the json is received. prints the status to
-    the user (sucess, still watiing, error)
-    """
-    def get(self):
-        ticket = self.request.get("ticket")
-        fileName = self.request.get("fileName")
-        s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
-        result = s.isready(int(ticket))
-        #the first time it loads the page, if the result isnt immediate it will enter this branch
-        if result in [-2,'-2']:
-            redirectionURL='waitFile?ticket={0}&fileName={1}'.format(ticket,fileName)
-            template_values={
-                'redirection' : redirectionURL,
-                'ticket':int(ticket),
-                'fileName':fileName
-            }
-            template =JINJA_ENVIRONMENT.get_template('wait.html')
-            self.response.write(template.render(template_values))
-        elif result in [-1,'-1']:
-            #bad request
-            self.response.write("Your request doesn't exist. Please submit your file again")
-            return
-
-        else:
-            #when the result is here it will enter this branch
-            s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
-            result = s.getDict(int(ticket))
-            if result in ['-5',-5]:
-                self.response.write("There was an error processing your request")
-                return
-
-            #old create a file using the files api
-            '''    
-            file_name = files.blobstore.create(mime_type='application/octet-stream')
-            
-            # Open the file and write to it
-            result = result.encode('ascii', 'ignore')
-            with files.open(file_name, 'a') as f:
-              f.write(result)
-            
-            # Finalize the file. Do this before attempting to read it.
-            files.finalize(file_name)
-            
-            # Get the file's blob key
-            blob_key = files.blobstore.get_blob_key(file_name)
-            '''
-
-            bucket_name = os.environ.get('BUCKET_NAME',
-                                         app_identity.get_default_gcs_bucket_name())
-
-            gcs_filename = '/{1}/{0}.bngl'.format(fileName, bucket_name)
-            blob_key = CreateFile(gcs_filename, result.decode('utf-8', 'replace'))
-
-            ###        
-            #blob_info = blobstore.BlobInfo.get(blob_key)
-            #output = blob_info.open()
-            ###
-            printStatement = '<a href="/serve/{1}?key={0}">{1}</a>'.format(blob_key,fileName)
-            #p2 = output.read()        
-            self.response.write(printStatement)
-                    #modelSubmission.put()
-    def post(self):
-        return self.get()
-        
 class Refine(webapp2.RequestHandler):
+
     def get(self):
-        template_values={
-        
+        template_values = {
+
         }
-        template =JINJA_ENVIRONMENT.get_template('refine.html')
+        template = JINJA_ENVIRONMENT.get_template('refine.html')
         self.response.write(template.render(template_values))
 
 
+class Comparison(webapp2.RequestHandler):
+
+    def get(self):
+        upload_url = blobstore.create_upload_url('/processComparison')
+        template_values = {
+            'action': upload_url,
+        }
+        template = JINJA_ENVIRONMENT.get_template('compare.html')
+        self.response.write(template.render(template_values))
+
+
+class Normalize(webapp2.RequestHandler):
+
+    def get_cookie(self, name, default=None):
+        """Gets the value of the cookie with the given name,else default."""
+        if name in self.request.cookies:
+            return self.request.cookies[name]
+        return default
+
+    def post(self):
+        elementDictionary = defaultdict(lambda: defaultdict(str))
+        ymlDict = {'model': [{'name': self.get_cookie('fileName1'), 'molecules': []},
+                             {'name': self.get_cookie('fileName2'), 'molecules': []}]}
+
+        for element in self.request.POST.items():
+            elementDictionary[element[0].split('_')[1]][element[0].split('_')[0]] = element[1]
+
+        fileName1 =  self.get_cookie('fileName1')
+        fileName2 =  self.get_cookie('fileName2')
+        blob1 =  self.get_cookie('blob1')
+        blob2 =  self.get_cookie('blob2')
+
+
+        for entry in elementDictionary:
+            if elementDictionary[entry]['scroll'] != 'None':
+                if elementDictionary[entry]['alt'] != '':
+                    newName = elementDictionary[entry]['alt']
+                else:
+                    newName = elementDictionary[entry]['field']
+                if newName != elementDictionary[entry]['scroll']:
+                    ymlDict['model'][1]['molecules'].append({'name': elementDictionary[entry]['scroll'], 'newname': newName})
+            if elementDictionary[entry]['alt'] != '':
+                newName = elementDictionary[entry]['alt']
+                ymlDict['model'][0]['molecules'].append({'name': elementDictionary[entry]['field'], 'newname': newName})
+
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
+
+        bnglContent1 = xmlrpclib.Binary(blobstore.fetch_data(blob1, 0, 900000))
+        bnglContent2 = xmlrpclib.Binary(blobstore.fetch_data(blob2, 0, 900000))
+        yamlStr = xmlrpclib.Binary(yaml.dump(ymlDict))
+
+        ticket = s.compareFiles(bnglContent1, bnglContent2, yamlStr)
+        # self.response.write(result)
+
+        self.redirect('/waitFile?ticket={0}&resultMethod=normalize'.format(ticket, fileName1))
+        
+        self.response.write(str(ymlDict))
+            
+
+
 class Graph(webapp2.RequestHandler):
+
     def get(self):
         upload_url = blobstore.create_upload_url('/graphp')
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9100')
-        
-        template_values={
-            'action' : upload_url,
+
+        template_values = {
+            'action': upload_url,
             #'reactionDefinition' : ['1','2','3','4','5','6','7','8','9','10','a','b','c']
         }
-        template =JINJA_ENVIRONMENT.get_template('graph.html')
+        template = JINJA_ENVIRONMENT.get_template('graph.html')
         self.response.write(template.render(template_values))
 
 
 class ExpandAnnotation(webapp2.RequestHandler):
+
     def get(self):
         upload_url = blobstore.create_upload_url('/eannotation')
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9100')
-        
-        template_values={
-            'action' : upload_url,
+
+        template_values = {
+            'action': upload_url,
             #'reactionDefinition' : ['1','2','3','4','5','6','7','8','9','10','a','b','c']
         }
-        template =JINJA_ENVIRONMENT.get_template('annotation.html')
+        template = JINJA_ENVIRONMENT.get_template('annotation.html')
         self.response.write(template.render(template_values))
 
+
 class ExpandAnnotationMethod(blobstore_handlers.BlobstoreUploadHandler):
-     def post(self):
-        
+
+    def post(self):
+
         upload_files = self.get_uploads('file')
         blob_info = upload_files[0]
         reader = blob_info.open()
         sbmlContent = xmlrpclib.Binary(reader.read())
 
-        #https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
-        #https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
-        s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
+        # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
+        # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
         ticket = s.generateAnnotations(sbmlContent)
-        #self.response.write(result)
-        
-        self.redirect('/waitFile?ticket={0}&fileName={1}'.format(ticket,blob_info.filename))
+        # self.response.write(result)
+
+        self.redirect('/waitFile?ticket={0}&fileName={1}'.format(ticket, blob_info.filename))
 
 
 class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
-     def post(self):
-        
+
+    def post(self):
+
         upload_files = self.get_uploads('file')
         blob_info = upload_files[0]
         reader = blob_info.open()
@@ -315,32 +345,36 @@ class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
             graphType = 'contactmap'
         elif returnType == 'SBGN-ER':
             graphType = 'sbgn_er'
-        #https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
-        #https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
-        s = xmlrpclib.ServerProxy(remoteServer,GAEXMLRPCTransport())
+        # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
+        # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
-        ticket = s.generateGraph(bnglContent,graphType)
-        #self.response.write(result)
-        
-        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml'.format(ticket,blob_info.filename,graphType))
+        ticket = s.generateGraph(bnglContent, graphType)
+        # self.response.write(result)
 
-                
+        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml'.format(ticket, blob_info.filename, graphType))
+
+
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
-  def get(self, resource):
-    resource = str(urllib.unquote(self.request.get('key')))
-    #blob_info = blobstore.BlobInfo.get(resource)
-    self.send_blob(resource)
-    
+
+    def get(self, resource):
+        resource = str(urllib.unquote(self.request.get('key')))
+        #blob_info = blobstore.BlobInfo.get(resource)
+        self.send_blob(resource)
+
 app = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/translate',Translate),
+    ('/translate', Translate),
     ('/serve/([^/]+)?', ServeHandler),
-    ('/process',ProcessFile),
-    ('/refine',Refine),
-    ('/annotation',ExpandAnnotation),
-    ('/eannotation',ExpandAnnotationMethod),
-    ('/graphp',GraphFile),
-    ('/graph',Graph),
-    ('/waitFile',WaitFile),
-    ('/testFile',WaitFileJson)
+    ('/process', ProcessFile),
+    ('/processComparison', ProcessComparison),
+    ('/refine', Refine),
+    ('/comparison', Comparison),
+    ('/normalize', Normalize),
+    ('/annotation', ExpandAnnotation),
+    ('/eannotation', ExpandAnnotationMethod),
+    ('/graphp', GraphFile),
+    ('/graph', Graph),
+    ('/waitFile', WaitFile.WaitFile),
+    ('/testFile', WaitFileJson)
 ], debug=True)
