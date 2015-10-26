@@ -216,7 +216,10 @@ class WaitFile(webapp2.RequestHandler):
                     self.response.write('<select id="scroll_{0}" name="scroll_{0}" class="pure-input-23-24">\n'.format(idx))
                     self.response.write('\t<option>None</option>\n')
                     for molecule2 in moleculeNames2:
-                        self.response.write('\t<option>{0}</option>\n'.format(molecule2))
+                        if molecule2.lower() == molecule.lower():
+                            self.response.write('\t<option selected>{0}</option>\n'.format(molecule2))
+                        else:
+                            self.response.write('\t<option>{0}</option>\n'.format(molecule2))
 
                     self.response.write('</select></div>\n')
 
