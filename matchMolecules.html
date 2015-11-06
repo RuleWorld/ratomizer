@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<form class="pure-form pure-form-stacked" name="normalizeform" action="/normalize" method="post">
+<fieldset>
+<div class="pure-g">
+    {% for molecule in moleculeNames1 %}
+        <div class="pure-u-md-1-3">
+        <input id="field_{{loop.index0}}" name="field_{{loop.index0}}" class="pure-u-23-24" type="text" value={{molecule}} readonly />
+        </div>
+        <div class="pure-u-md-1-3">
+        <select id="scroll_{{loop.index0}}" name="scroll_{{loop.index0}}" class="pure-input-23-24">
+        <option>None</option>
+        {%for molecule2 in moleculeNames2 %}
+            {% if molecule2|lower == molecule|lower %}
+                <option selected>{{molecule2}}</option>
+            {% else %}
+                <option>{{molecule2}}</option>
+            {% endif %}
+        {% endfor %}
+        </select></div>
+
+        <div class="pure-u-md-1-3">
+        <input id="alt_{{loop.index0}}" name="alt_{{loop.index0}}" class="pure-u-23-24" type="text" />
+        </div>
+
+        <br/>
+    {% endfor %}
+
+    </div>
+    <button type="submit" class="button-success pure-button">Submit</button>
+</fieldset>
+</form>
+{% endautoescape %}

@@ -8,7 +8,7 @@ import Cookie
 import datetime
 import email
 import calendar
-
+import yaml
 
 from google.appengine.api import urlfetch
 from google.appengine.api import app_identity
@@ -199,39 +199,20 @@ class WaitFile(webapp2.RequestHandler):
                 #p2 = output.read()
                 self.response.write(printStatement)
                     # modelSubmission.put()
+
             elif resultMethod == 'compare':
+                #self.set_cookie(name="moleculeType", value=yaml.dump(result))
                 moleculeNames1 = self.compareGenerator(result[0])
                 moleculeNames2 = self.compareGenerator(result[1])
-                self.response.write('<form class="pure-form pure-form-stacked" name="normalizeform" action="/normalize" method="post">\n'.format(fileName, fileName2))
-                self.response.write('<fieldset>')
 
-                self.response.write('<div class="pure-g">')
 
-                for idx,molecule in enumerate(moleculeNames1):
-                    self.response.write('<div class="pure-u-md-1-3">\n')
-                    self.response.write('<input id="field_{0}" name="field_{0}" class="pure-u-23-24" type="text" value={1} readonly />\n'.format(idx, molecule))
-                    self.response.write('</div>\n')
+                template_values = {
+                    'moleculeNames1': moleculeNames1,
+                    'moleculeNames2': moleculeNames2
+                }
+                template = JINJA_ENVIRONMENT.get_template('matchMolecules.html')
+                self.response.write(template.render(template_values))
 
-                    self.response.write('<div class="pure-u-md-1-3">\n')
-                    self.response.write('<select id="scroll_{0}" name="scroll_{0}" class="pure-input-23-24">\n'.format(idx))
-                    self.response.write('\t<option>None</option>\n')
-                    for molecule2 in moleculeNames2:
-                        if molecule2.lower() == molecule.lower():
-                            self.response.write('\t<option selected>{0}</option>\n'.format(molecule2))
-                        else:
-                            self.response.write('\t<option>{0}</option>\n'.format(molecule2))
-
-                    self.response.write('</select></div>\n')
-
-                    self.response.write('<div class="pure-u-md-1-3">\n')
-                    self.response.write('<input id="alt_{0}" name="alt_{0}" class="pure-u-23-24" type="text" />\n'.format(idx, molecule))
-                    self.response.write('</div>\n')
-
-                    self.response.write('<br/>')
-                    
-
-                self.response.write('</div>')
-                self.response.write('<button type="submit" class="button-success pure-button">Submit</button></fieldset></form>')
 
             elif resultMethod == 'normalize':
                 fileName1 =  self.get_cookie('fileName1')
@@ -297,3 +278,8 @@ class WaitFile(webapp2.RequestHandler):
 
     def post(self):
         return self.get()
+
+
+class ComponentComparison(WaitFile):
+    def get(self):
+        pass
