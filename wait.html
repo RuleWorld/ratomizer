@@ -17,6 +17,7 @@
 
         $.get( "testFile?ticket={{ticket}}", function(data){
         	var obj = jQuery.parseJSON( data);
+          console.log(obj.result)
           // keep waiting 
         	if (obj.result == -2){
         		count = 5
@@ -24,7 +25,8 @@
         	}
           //this would happen if the user refreshes the download page
         	else if(obj.result == -1){
-        		$("#display").text("Your request doesn't exist. Please submit your file again")	
+        		$("#content").text("Your request doesn't exist. Please submit your file again")	
+            clearInterval(timer);
         	}
 
           //the result is here. display url by calling the WaitFile class.

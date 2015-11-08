@@ -1,23 +1,184 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-{% autoescape true %}
+<!DOCTYPE html>
 
 <html>
-
 <head>
-   <meta charset="UTF-8">
-   <title>Contact Map Visualizer</title>
-   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js" type="text/javascript" charset="utf-8"></script>
-   <script src="/script/cytoscape.js"></script>
-    <script src="/script/network.js"></script>
-  <script src="/script/vizmap.js"></script>
-   <script src="/script/demo.js"></script></head>
+<meta name="description" content="[An example of getting started with Cytoscape.js]" />
+ <link rel="stylesheet" type="text/css" href="script/style.css">
+ <link rel="stylesheet" href="script/pure-min.css">
+ <link rel="stylesheet" href="script/font.css">
+<link rel="stylesheet" href="script/baby-blue.css">
 
+<link href="script/font-awesome.css" rel="stylesheet" type="text/css" />
+<link href="script/cytoscape.js-panzoom.css" rel="stylesheet" type="text/css" />
+
+<script src="script/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="script/cytoscape.min.js"></script>
+<script src="script/cytoscape.js-panzoom.js"></script>
+<script src="script/arbor.js"></script>
+
+
+<style>
+body {
+        font-family: helvetica;
+        font-size: 14px;
+      }  
+
+
+    #cy {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+</style> 
+<link rel="stylesheet" type="text/css" href="script/cy.css">
+
+<meta charset=utf-8 />
+<title>Cytoscape.js initialisation</title>
+<script>
+    var URL = "/json2gml";
+</script>
+
+
+<script type="text/javascript">
+    var data = {name: 'Jon'};
+    $(function(){
+        
+    });
+</script>
+
+<script>
+  function json2gml(){
+      var jsonInfo = {'cytoscapeJSON': JSON.stringify(cy.json())};
+      $("#content").empty();
+          $.post(URL, jsonInfo, function(data){
+          console.log(data);
+          console.log('hello')
+            $("#content")
+          .append( data )
+        });
+
+  }
+  $(document).ready(function(){
+      $('#jsonvalue').click(function(){
+          json2gml();
+      });
+  });
+</script>
+<script>
+$(function(){ // on dom ready
+
+$('#cy').cytoscape({
+
+   style: [
+    {
+      selector: 'node',
+      css: {
+        'content': 'data(label)',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'text-outline-width': 2,
+        'text-outline-color': 'data(faveColor)',
+        'background-color': 'data(faveColor)',
+        'color':'#fff'        
+      }
+    },
+    {
+      selector: '$node > node',
+      css: {
+        'padding-top': '20px',
+        'padding-left': '10px',
+        'padding-bottom': '10px',
+        'padding-right': '10px',
+        'text-valign': 'top',
+        'text-halign': 'center'
+      }
+    },
+    {
+      selector: 'edge',
+      css: {
+        'target-arrow-shape': 'triangle',
+        'line-color': 'data(faveColor)',
+        'source-arrow-color': 'data(faveColor)',
+        'target-arrow-color': 'data(faveColor)'
+
+      }
+    },
+    {
+      selector: ':selected',
+      css: {
+        'background-color': 'black',
+        'line-color': 'black',
+        'target-arrow-color': 'black',
+        'source-arrow-color': 'black'
+      }
+    }
+  ],
+  
+  //layout:{'coolingFactor': 0.95, 'initialTemp': 200,'nodeRepulsion': 100, 'nodeOverlap': 10, 'gravity': 650, 'padding': 4, 'name': 'cose', 'nestingFactor': 2, 'initialTemp ': 2000, 'minTemp': 1, 'numIter': 100, 'edgeElasticity': 500, 'idealEdgeLength': 10},
+   
+   layout:{{layout2}},
+
+  elements: {{graph}},
+  
+  ready: function(){
+    window.cy = this;
+    
+    // giddy up...
+    
+    cy.elements().unselectify();
+    
+    cy.on('tap', 'node', function(e){
+      var node = e.cyTarget; 
+      var neighborhood = node.neighborhood().add(node);
+      
+      cy.elements().addClass('faded');
+      neighborhood.removeClass('faded');
+    });
+    
+    cy.on('tap', function(e){
+      if( e.cyTarget === cy ){
+        cy.elements().removeClass('faded');
+      }
+      
+    });
+      cy.panzoom({
+          // options go here
+        });
+  }
+
+});
+
+}); // on dom ready
+</script>
+
+ </head>
 <body>
+          <style scoped>
 
-<div id="cy"></div>
+        .button-success,
+        .button-secondary {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-success {
+            background: rgb(28, 184, 65); /* this is a green */
+        }
+
+  
+    </style>
+
+  <div id="cy" style="height:85%;width:100%"></div>
+  <div id="options" style="height:10%;width=100%;position: absolute; bottom:0">
+<input id="jsonvalue" name="jsonvalue" type="submit" class="button-success pure-button" value="Save file as gml">
+</div>
+    <div id="content" style="position:absolute; bottom:0">
+
+  </div>
 
 </body>
 
 </html>
-
-{% endautoescape %}

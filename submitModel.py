@@ -26,6 +26,9 @@ import yaml
 from google.appengine.api import urlfetch
 urlfetch.set_default_fetch_deadline(60)
 
+remoteServer = "http://54.214.249.43:9000"
+#remoteServer = "http://127.0.0.1:9000"
+
 
 class GAEXMLRPCTransport(object):
 
@@ -94,9 +97,6 @@ def dbmodel_key(model_name=DATABASE_NAME):
     """Constructs a Datastore key for a ModelDB entity with model_name."""
     return ndb.Key('ModelDB', model_name)
 
-
-#remoteServer = "http://54.214.249.43:9000"
-remoteServer = "http://127.0.0.1:9000"
 
 
 class Translate(webapp2.RequestHandler):
@@ -352,7 +352,7 @@ class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
         ticket = s.generateGraph(bnglContent, graphType)
         # self.response.write(result)
 
-        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml'.format(ticket, blob_info.filename, graphType))
+        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml&resultMethod=visualize&graphType={2}'.format(ticket, blob_info.filename, graphType))
 
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
@@ -370,6 +370,9 @@ app = webapp2.WSGIApplication([
     ('/processComparison', ProcessComparison),
     ('/refine', Refine),
     ('/comparison', Comparison),
+    ('/componentComparison', WaitFile.ComponentComparison),
+    ('/json2gml',WaitFile.Json2gml),
+    ('/visualize', WaitFile.Visualize),
     ('/normalize', Normalize),
     ('/annotation', ExpandAnnotation),
     ('/eannotation', ExpandAnnotationMethod),

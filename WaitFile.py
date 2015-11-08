@@ -9,6 +9,8 @@ import datetime
 import email
 import calendar
 import yaml
+import json
+from writeGML import write_gml
 
 from google.appengine.api import urlfetch
 from google.appengine.api import app_identity
@@ -19,8 +21,22 @@ import cloudstorage as gcs
 urlfetch.set_default_fetch_deadline(60)
 
 
-#remoteServer = "http://54.214.249.43:9000"
-remoteServer = "http://127.0.0.1:9000"
+remoteServer = "http://54.214.249.43:9000"
+#remoteServer = "http://127.0.0.1:9000"
+
+def convert(input):
+    '''
+    change array/dict of unicode strings to ascii strings
+    '''
+    if isinstance(input, dict):
+        return dict((convert(key), convert(value)) for key, value in input.iteritems())
+    elif isinstance(input, list):
+        return [convert(element) for element in input]
+    elif isinstance(input, unicode):
+        return input.encode('utf-8')
+    else:
+        return input
+
 
 class GAEXMLRPCTransport(object):
 
@@ -67,6 +83,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
     extensions=['jinja2.ext.autoescape'])
 
 
+
 def CreateFile(filename, content):
     """Create a GCS file with GCS client lib.
 
@@ -88,6 +105,7 @@ def CreateFile(filename, content):
     if not isinstance(bk, blobstore.BlobKey):
         bk = blobstore.BlobKey(bk)
     return bk
+
 
 
 class WaitFile(webapp2.RequestHandler):
@@ -148,17 +166,19 @@ class WaitFile(webapp2.RequestHandler):
         fileName2 = self.request.get("fileName2")
         blob1 = self.request.get("blob1")
         blob2 = self.request.get("blob2")
+        graphType = self.request.get("graphType")
 
         resultMethod = self.request.get("resultMethod")
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         result = s.isready(int(ticket))
-
-        if blob1 not in [None,'']:
+        if blob1 not in [None, '']:
             self.set_cookie(name="fileName1", value=fileName)
             self.set_cookie(name="fileName2", value=fileName2)
             self.set_cookie(name="blob1", value=blob1)
             self.set_cookie(name="blob2", value=blob2)
-
+        
+        if graphType not in [None, '']:
+            self.set_cookie(name="graphType", value=graphType)
 
         # the first time it loads the page, if the result isnt immediate it will enter this branch
         if result in [-2, '-2']:
@@ -200,6 +220,36 @@ class WaitFile(webapp2.RequestHandler):
                 self.response.write(printStatement)
                     # modelSubmission.put()
 
+            elif resultMethod in ['', 'visualize']:
+                bucket_name = os.environ.get('BUCKET_NAME',
+                                             app_identity.get_default_gcs_bucket_name())
+
+                gcs_filename = '/{1}/{0}.gml'.format(fileName, bucket_name)
+
+
+                graphType = self.get_cookie('graphType')
+
+                if graphType in ['contactmap', 'regulatory']:
+                    blob_key = CreateFile(gcs_filename, result['gmlStr'].decode('utf-8', 'replace'))
+                else:
+                    blob_key = CreateFile(gcs_filename, result.decode('utf-8', 'replace'))
+                ###
+                #blob_info = blobstore.BlobInfo.get(blob_key)
+                #output = blob_info.open()
+                ###
+
+                #self.set_cookie(name="cyjsonGraph", value=result['jsonStr'].decode('utf-8', 'replace'))
+                printStatement = '<a href="/serve/{1}?key={0}">{1}</a>'.format(blob_key, fileName)
+
+
+                #p2 = output.read()
+                self.response.write(printStatement)
+
+                if graphType in ['contactmap', 'regulatory']:
+                    gcs_filename = '/{1}/{0}.json'.format(fileName, bucket_name)
+                    blob_key2 = CreateFile(gcs_filename, result['jsonStr'].decode('utf-8', 'replace'))
+                    self.response.write('<br><a href="/visualize?mapType={0}&jsonBlob={1}">Visualize graph online</a>'.format(self.request.get('graphType'), blob_key2))
+
             elif resultMethod == 'compare':
                 #self.set_cookie(name="moleculeType", value=yaml.dump(result))
                 moleculeNames1 = self.compareGenerator(result[0])
@@ -213,10 +263,9 @@ class WaitFile(webapp2.RequestHandler):
                 template = JINJA_ENVIRONMENT.get_template('matchMolecules.html')
                 self.response.write(template.render(template_values))
 
-
             elif resultMethod == 'normalize':
-                fileName1 =  self.get_cookie('fileName1')
-                fileName2 =  self.get_cookie('fileName2')
+                fileName1 = self.get_cookie('fileName1')
+                fileName2 = self.get_cookie('fileName2')
 
                 bucket_name = os.environ.get('BUCKET_NAME',
                                              app_identity.get_default_gcs_bucket_name())
@@ -227,10 +276,11 @@ class WaitFile(webapp2.RequestHandler):
                 blob_key = CreateFile(gcs_filename, result[0][0].decode('utf-8', 'replace'))
                 blob_key2 = CreateFile(gcs_filename2, result[0][1].decode('utf-8', 'replace'))
 
-                ###
-                #blob_info = blobstore.BlobInfo.get(blob_key)
-                #output = blob_info.open()
-                ###
+                """
+                blob_info = blobstore.BlobInfo.get(blob_key)
+                output = blob_info.open()
+                """
+
                 self.response.write('Comparison stats:<br>'.format(result[1]['structure'][0], result[1]['structure'][1], fileName1))
                 self.response.write('<ul>')
                 self.response.write('<li>The models overlap in {0}/{1} of the molecules in {2}</li>'.format(result[1]['structure'][0], result[1]['structure'][1], fileName1))
@@ -244,8 +294,8 @@ class WaitFile(webapp2.RequestHandler):
                 for molecule in result[1]['process'].keys():
                     if 'file1' in result[1]['process'][molecule] and result[1]['process'][molecule]['score'] == 1.0 and result[1]['process'][molecule]['score2'] == 1.0:
                         self.response.write('<li>Molecule {0}\'s state space covers {1} out of {2} possible states'.format(molecule, result[1]['process'][molecule]['file1'],
-                                                                      result[1]['process'][molecule]['totalSpace']))
-                self.response.write('</ul>')                        
+                                            result[1]['process'][molecule]['totalSpace']))
+                self.response.write('</ul>')
                 self.response.write('<li> Molecules where {0} contains states {1} does not contain<li>'.format(fileName1, fileName2))
                 self.response.write('<ul>')
                 for molecule in result[1]['process'].keys():
@@ -273,13 +323,75 @@ class WaitFile(webapp2.RequestHandler):
                 printStatement = '<a href="/serve/{1}_normalized.bngl?key={0}">{1}_normalized.bngl</a><br/>'.format(blob_key2, fileName2)
 
                 self.response.write(printStatement)
-                #self.clear_all_cookies()
-
 
     def post(self):
         return self.get()
 
 
+class Visualize(WaitFile):
+    '''
+    calls cytoscape.js to visualize a contact map
+    '''
+    def get(self):
+        mapType = self.get_cookie('graphType')
+        print '---', mapType
+        template_values = {}
+
+        if mapType == 'series':
+            template_values['data'] = convert(model['timeSeriesJson'])
+            template = JINJA_ENVIRONMENT.get_template('/pages/visualizeSeries.html')
+            self.response.write(template.render(template_values))
+        else:
+            modelMap = json.loads(blobstore.fetch_data(self.request.get('jsonBlob'), 0, 900000))
+            if mapType == 'contactmap':
+                template_values['layout2'] = "{'coolingFactor': 0.95, 'initialTemp': 200,'nodeRepulsion': 100, 'nodeOverlap': 10, 'gravity': 650, 'padding': 4, 'name': 'cose', 'nestingFactor': 2, 'initialTemp ': 2000, 'minTemp': 1, 'numIter': 100, 'edgeElasticity': 500, 'idealEdgeLength': 10}"
+            elif mapType == 'regulatory':
+                template_values['layout2'] = "{'name': 'breadthfirst','fit':true,'padding':30,'directed': false}"
+
+            template_values['graph'] = convert(modelMap['elements'])
+            template_values['layout'] = convert(modelMap['layout'][0])
+            template = JINJA_ENVIRONMENT.get_template('visualize.html')
+            self.response.write(template.render(template_values))
+
+
 class ComponentComparison(WaitFile):
     def get(self):
         pass
+
+class Json2gml(webapp2.RequestHandler):
+    def post(self):
+
+        cytoscapeJSON = json.loads(self.request.get('cytoscapeJSON'))
+        nodeList = []
+        edgeList = []
+        for node in  cytoscapeJSON['elements']['nodes']:
+            nodeInfo = {}
+
+            nodeInfo['data'] = node['data']
+            nodeInfo['position'] = node['position']
+            nodeList.append(nodeInfo)
+            print nodeInfo
+        for edge in cytoscapeJSON['elements']['edges']:
+            edgeList.append([edge['data']['source'], edge['data']['target']])
+            print edge
+
+        graph = {'node': nodeList, 'edge': edgeList}
+        gmlString = write_gml(graph)
+        print gmlString
+        bucket_name = os.environ.get('BUCKET_NAME',
+                                     app_identity.get_default_gcs_bucket_name())
+        gcs_filename = '/{0}/output.json'.format(bucket_name)
+        blob_key = CreateFile(gcs_filename, gmlString)
+
+
+        printStatement = '<a href="/serve/output.gml?key={0}">download file</a><br/>'.format(blob_key)
+        #self.response.headers['Content-Type'] = "text/json"
+        #self.response.headers["Content-Disposition"] = 'attachment; filename=output.json'
+        #self.response.headers['url'] = "/serve/output.json?key={0}".format(blob_key)
+
+        #self.response.headers.add_header('content-type', 'application/json', charset='utf-8')
+        #self.response.out.write(json.dumps({'response':printStatement}))
+        self.response.out.write(printStatement)
+        print(blob_key)
+
+
