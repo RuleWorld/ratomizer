@@ -349,7 +349,7 @@ class Visualize(WaitFile):
                 template_values['typecolor'] = '#fff'
             elif mapType == 'regulatory':
                 template_values['targetshape'] = "triangle"
-                template_values['layout2'] = "{'name': 'breadthfirst','fit':true,'padding':30,'directed': false}"
+                template_values['layout2'] = "{'name': 'dagre','fit':true,'padding':30,'directed': false}"
                 template_values['typecolor'] = '#000'
 
             template_values['graph'] = convert(modelMap['elements'])
