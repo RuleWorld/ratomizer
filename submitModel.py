@@ -332,7 +332,6 @@ class ExpandAnnotationMethod(blobstore_handlers.BlobstoreUploadHandler):
 class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
 
     def post(self):
-
         upload_files = self.get_uploads('file')
         blob_info = upload_files[0]
         reader = blob_info.open()

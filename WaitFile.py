@@ -346,9 +346,11 @@ class Visualize(WaitFile):
             if mapType == 'contactmap':
                 template_values['layout2'] = "{'coolingFactor': 0.95, 'initialTemp': 200,'nodeRepulsion': 100, 'nodeOverlap': 10, 'gravity': 650, 'padding': 4, 'name': 'cose', 'nestingFactor': 2, 'initialTemp ': 2000, 'minTemp': 1, 'numIter': 100, 'edgeElasticity': 500, 'idealEdgeLength': 10}"
                 template_values['targetshape'] = "none"
+                template_values['typecolor'] = '#fff'
             elif mapType == 'regulatory':
                 template_values['targetshape'] = "triangle"
                 template_values['layout2'] = "{'name': 'breadthfirst','fit':true,'padding':30,'directed': false}"
+                template_values['typecolor'] = '#000'
 
             template_values['graph'] = convert(modelMap['elements'])
             template_values['layout'] = convert(modelMap['layout'][0])
