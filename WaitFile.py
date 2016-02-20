@@ -254,9 +254,13 @@ class WaitFile(webapp2.RequestHandler):
                 #self.set_cookie(name="moleculeType", value=yaml.dump(result))
                 moleculeNames1 = self.compareGenerator(result[0])
                 moleculeNames2 = self.compareGenerator(result[1])
+                fileName1 = self.get_cookie('fileName1')
+                fileName2 = self.get_cookie('fileName2')
 
 
                 template_values = {
+                    'fileName1': fileName1,
+                    'fileName2': fileName2,
                     'moleculeNames1': moleculeNames1,
                     'moleculeNames2': moleculeNames2
                 }

@@ -3,11 +3,19 @@
 <form class="pure-form pure-form-stacked" name="normalizeform" action="/normalize" method="post">
 <fieldset>
 <div class="pure-g">
+
     {% for molecule in moleculeNames1 %}
-        <div class="pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-3">
+        {% if loop.index0 == 0 %}
+            <label for="field_{{loop.index0}}">{{fileName1}}</label>
+        {% endif %}
         <input id="field_{{loop.index0}}" name="field_{{loop.index0}}" class="pure-u-23-24" type="text" value={{molecule}} readonly />
         </div>
-        <div class="pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-3">
+        {% if loop.index0 == 0 %}
+            <label for="field_{{loop.index0}}">{{fileName2}}</label>
+        {% endif %}
+
         <select id="scroll_{{loop.index0}}" name="scroll_{{loop.index0}}" class="pure-input-23-24">
         <option>None</option>
         {%for molecule2 in moleculeNames2 %}
@@ -19,7 +27,11 @@
         {% endfor %}
         </select></div>
 
-        <div class="pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-3">
+        {% if loop.index0 == 0 %}
+            <label for="field_{{loop.index0}}">Alternate name</label>
+        {% endif %}
+
         <input id="alt_{{loop.index0}}" name="alt_{{loop.index0}}" class="pure-u-23-24" type="text" />
         </div>
 
