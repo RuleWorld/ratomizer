@@ -181,7 +181,7 @@ class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
         ticket = s.atomize(sbmlContent, atomizeString, reaction, species)
         # self.response.write(result)
 
-        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl'.format(ticket, blob_info.filename))
+        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl&resultMethod=atomize'.format(ticket, blob_info.filename))
 
 
 class WaitFileJson(webapp2.RequestHandler):
@@ -329,6 +329,17 @@ class ExpandAnnotationMethod(blobstore_handlers.BlobstoreUploadHandler):
         self.redirect('/waitFile?ticket={0}&fileName={1}'.format(ticket, blob_info.filename))
 
 
+class GraphFileRedirect(webapp2.RequestHandler):
+    def get(self):
+        blob_info = self.request.get('bnglfile')
+        filename = self.request.get('filename')
+        bnglContent = xmlrpclib.Binary(blobstore.fetch_data(blob_info, 0, 900000))
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
+        #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
+        ticket = s.generateGraph(bnglContent, 'contactmap')
+        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml&resultMethod=visualize&graphType={2}'.format(ticket, filename, 'contactmap'))
+
+
 class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
 
     def post(self):
@@ -375,6 +386,7 @@ app = webapp2.WSGIApplication([
     ('/normalize', Normalize),
     ('/annotation', ExpandAnnotation),
     ('/eannotation', ExpandAnnotationMethod),
+    ('/graphpredirect', GraphFileRedirect),
     ('/graphp', GraphFile),
     ('/graph', Graph),
     ('/waitFile', WaitFile.WaitFile),

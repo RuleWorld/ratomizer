@@ -203,8 +203,26 @@ class WaitFile(webapp2.RequestHandler):
             if result in ['-5', -5]:
                 self.response.write("There was an error processing your request")
                 return
+            if resultMethod == 'atomize':
+                bucket_name = os.environ.get('BUCKET_NAME',
+                                             app_identity.get_default_gcs_bucket_name())
 
-            if resultMethod in ['', 'file']:
+                gcs_filename = '/{1}/{0}.bngl'.format(fileName, bucket_name)
+                blob_key = CreateFile(gcs_filename, result[0].decode('utf-8', 'replace'))
+
+
+                gcs_filename2 = '/{1}/{0}.log'.format(fileName, bucket_name)
+                blob_key2 = CreateFile(gcs_filename2, result[1].decode('utf-8', 'replace'))
+
+                printStatement = '<a href="/serve/{1}?key={0}">{1}</a><br>'.format(blob_key, fileName)
+                printStatement += '<a href="/serve/{1}.log?key={0}">{1}.log</a><br>'.format(blob_key2, fileName)
+                printStatement += 'Visualize: <a href="/graphpredirect?bnglfile={0}&filename={1}">Visualize contact map</a>'.format(blob_key, fileName)
+                print 'hello'
+                #p2 = output.read()
+                self.response.write(printStatement)
+
+
+            elif resultMethod in ['', 'file']:
                 bucket_name = os.environ.get('BUCKET_NAME',
                                              app_identity.get_default_gcs_bucket_name())
 
