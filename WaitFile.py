@@ -144,8 +144,8 @@ class WaitFile(webapp2.RequestHandler):
 
         name = name
         value = value
-        if re.search(r"[\x00-\x20]", name + value):   # Don't let us accidentally inject bad stuff
-            raise ValueError("Invalid cookie %r:%r" % (name, value))
+        #if re.search(r"[\x00-\x20]", name + value):   # Don't let us accidentally inject bad stuff
+        #    raise ValueError("Invalid cookie %r:%r" % (name, value))
         new_cookie = Cookie.BaseCookie()
         new_cookie[name] = value
         if domain:
@@ -217,8 +217,10 @@ class WaitFile(webapp2.RequestHandler):
                     gcs_filename2 = '/{1}/{0}.log'.format(fileName, bucket_name)
                     blob_key2 = CreateFile(gcs_filename2, log_contents)
 
-                    if any([x in log_contents for x in ['ATO1', 'ATO2', 'SCT1', 'SCT2']]):
-                        printStatement = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be verified or provided.</font></p><br/>'
+                    if any([x in log_contents for x in ['ATO2', 'SCT2']]):
+                        printStatement = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
+                    elif any([x in log_contents for x in ['ATO1', 'SCT1']]):                        
+                        printStatement = '<p><font color="orange"> The atomization process contains warnings. Please check the atomization log for instructions on what information needs to be verified.</font></p><br/>'
                     else:
                         printStatement = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
 
@@ -229,7 +231,7 @@ class WaitFile(webapp2.RequestHandler):
                     printStatement = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
 
 
-                printStatement += 'Visualize: <a href="/graphpredirect?bnglfile={0}&filename={1}">Visualize contact map</a>'.format(blob_key, fileName)
+                printStatement += 'Visualize: <a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}">Visualize contact map</a>'.format(blob_key, fileName)
                 print 'hello', len(result[1])
                 #p2 = output.read()
                 self.response.write(printStatement)
@@ -279,7 +281,7 @@ class WaitFile(webapp2.RequestHandler):
                 if graphType in ['contactmap', 'regulatory']:
                     gcs_filename = '/{1}/{0}.json'.format(fileName, bucket_name)
                     blob_key2 = CreateFile(gcs_filename, result['jsonStr'].decode('utf-8', 'replace'))
-                    self.response.write('<br><a href="/visualize?mapType={0}&jsonBlob={1}">Visualize graph online</a>'.format(self.request.get('graphType'), blob_key2))
+                    self.response.write('<br><a target="_blank" href="/visualize?mapType={0}&jsonBlob={1}">Visualize graph online</a>'.format(self.request.get('graphType'), blob_key2))
 
             elif resultMethod == 'compare':
                 #self.set_cookie(name="moleculeType", value=yaml.dump(result))
