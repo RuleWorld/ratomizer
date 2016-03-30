@@ -333,11 +333,12 @@ class GraphFileRedirect(webapp2.RequestHandler):
     def get(self):
         blob_info = self.request.get('bnglfile')
         filename = self.request.get('filename')
+        graphtype = self.request.get('graphtype')
         bnglContent = xmlrpclib.Binary(blobstore.fetch_data(blob_info, 0, 900000))
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
-        ticket = s.generateGraph(bnglContent, 'contactmap')
-        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml&resultMethod=visualize&graphType={2}'.format(ticket, filename, 'contactmap'))
+        ticket = s.generateGraph(bnglContent, graphtype)
+        self.redirect('/waitFile?ticket={0}&fileName={1}_{2}.gml&resultMethod=visualize&graphType={2}'.format(ticket, filename, graphtype))
 
 
 class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
@@ -355,6 +356,8 @@ class GraphFile(blobstore_handlers.BlobstoreUploadHandler):
             graphType = 'contactmap'
         elif returnType == 'SBGN-ER':
             graphType = 'sbgn_er'
+        elif returnType == 'STD':
+            graphType = 'std'
         # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
         # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())

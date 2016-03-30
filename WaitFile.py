@@ -231,11 +231,9 @@ class WaitFile(webapp2.RequestHandler):
                     printStatement = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
 
 
-                printStatement += 'Visualize: <a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}">Visualize contact map</a>'.format(blob_key, fileName)
-                print 'hello', len(result[1])
-                #p2 = output.read()
+                printStatement += '<a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}&graphtype=contactmap">Visualize contact map</a>'.format(blob_key, fileName)
+                printStatement += '<br/><a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}&graphtype=std">Visualize state transition diagram</a>'.format(blob_key, fileName)
                 self.response.write(printStatement)
-
 
             elif resultMethod in ['', 'file']:
                 bucket_name = os.environ.get('BUCKET_NAME',
@@ -261,11 +259,11 @@ class WaitFile(webapp2.RequestHandler):
 
 
                 graphType = self.get_cookie('graphType')
-
+                print graphType 
                 if graphType in ['contactmap', 'regulatory']:
                     blob_key = CreateFile(gcs_filename, result['gmlStr'].decode('utf-8', 'replace'))
                 else:
-                    blob_key = CreateFile(gcs_filename, result.decode('utf-8', 'replace'))
+                    blob_key = CreateFile(gcs_filename, convert(result).decode('utf-8', 'replace'))
                 ###
                 #blob_info = blobstore.BlobInfo.get(blob_key)
                 #output = blob_info.open()
