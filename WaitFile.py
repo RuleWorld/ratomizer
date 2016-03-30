@@ -84,7 +84,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 
 
 
-def CreateFile(filename, content):
+def CreateFile(filename, content, content_type='binary/octet-stream'):
     """Create a GCS file with GCS client lib.
 
     Args:
@@ -94,7 +94,7 @@ def CreateFile(filename, content):
     The corresponding string blobkey for this GCS file.
     """
     # Create a GCS file with GCS client.
-    with gcs.open(filename, 'w') as f:
+    with gcs.open(filename, mode='w', content_type=content_type) as f:
         f.write(content.encode('utf-8', 'replace'))
 
     # Blobstore API requires extra /gs to distinguish against blobstore files.
@@ -215,7 +215,7 @@ class WaitFile(webapp2.RequestHandler):
                 # there's some issues in teh atomization process/we know because the log has a non-zero length
                 if len(result[1]) > 0:
                     gcs_filename2 = '/{1}/{0}.log'.format(fileName, bucket_name)
-                    blob_key2 = CreateFile(gcs_filename2, log_contents)
+                    blob_key2 = CreateFile(gcs_filename2, log_contents, content_type='text/plain')
 
                     if any([x in log_contents for x in ['ATO2', 'SCT2']]):
                         printStatement = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
