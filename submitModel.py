@@ -168,17 +168,30 @@ class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
         """
         upload_files = self.get_uploads('file')
         blob_info = upload_files[0]
+
         reader = blob_info.open()
         sbmlContent = xmlrpclib.Binary(reader.read())
         atomizeString = self.request.get('atomize')
         reaction = self.request.get('reaction')
         species = self.request.get('species')
+        
+        upload_files1 = self.get_uploads('userconf')
+        if len(upload_files1) > 0:
+            blob_info1 = upload_files1[0]
+            reader = blob_info1.open()
+            jsonContent = xmlrpclib.Binary(reader.read())
+        else:
+            jsonContent = None
+        print jsonContent
         # print 'fsdgsdgsd',atomize
         # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
         # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
-        ticket = s.atomize(sbmlContent, atomizeString, reaction, species)
+        if jsonContent:
+            ticket = s.atomize(sbmlContent, atomizeString, reaction, species, jsonContent)
+        else:
+            ticket = s.atomize(sbmlContent, atomizeString, reaction, species)
         # self.response.write(result)
 
         self.redirect('/waitFile?ticket={0}&fileName={1}.bngl&resultMethod=atomize'.format(ticket, blob_info.filename))

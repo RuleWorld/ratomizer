@@ -34,9 +34,12 @@
      <form action="{{ action }}" class="pure-form pure-form-stacked" method="post" enctype="multipart/form-data">
           <fieldset>
     <legend>Model submission: </legend>
-       <input type="file" class="pure-button" name="file" accept=".xml,.sbml" required><br> 
-      <label for="atomID" class="pure-checkbox">
-      <input id="atomID" type="checkbox" name="atomize" value="atomize"> Atomize</label>
+       <input type="file" class="pure-button" name="file" accept=".xml,.sbml" required><br>
+      <input id="atomID" type="checkbox" name="atomize" value="atomize" checked> Atomize</label>
+      <legend>User configuration file (Optional): </legend>
+
+       <input type="file" class="pure-button" name="userconf" accept=".json"><br> 
+
       <!--
       <div><select name=reaction>
         {% for option in reactionDefinition %}
