@@ -32,8 +32,8 @@ import yaml
 from google.appengine.api import urlfetch
 urlfetch.set_default_fetch_deadline(60)
 
-#remoteServer = "http://54.214.249.43:9000"
-remoteServer = "http://127.0.0.1:9000"
+remoteServer = "http://54.214.249.43:9000"
+#remoteServer = "http://127.0.0.1:9000"
 
 
 class GAEXMLRPCTransport(object):
@@ -95,7 +95,7 @@ class MainPage(webapp2.RequestHandler):
         template_values = {
 
         }
-        template = JINJA_ENVIRONMENT.get_template('index.html')
+        template = JINJA_ENVIRONMENT.get_template('pages/index.html')
         self.response.write(template.render(template_values))
 
 
@@ -122,7 +122,7 @@ class Translate(webapp2.RequestHandler):
             #'reactionDefinition' : reactionFiles,
             #'speciesDefinition': speciesFiles
         }
-        template = JINJA_ENVIRONMENT.get_template('translate.html')
+        template = JINJA_ENVIRONMENT.get_template('pages/translate.html')
         self.response.write(template.render(template_values))
 
 class ProcessComparison(blobstore_handlers.BlobstoreUploadHandler):
@@ -285,8 +285,15 @@ class PostProcessFile(blobstore_handlers.BlobstoreUploadHandler):
         blob1 =  self.get_cookie('blob1')
 
         sbmlContent = xmlrpclib.Binary(blobstore.fetch_data(blob1, 0, 900000))
-        bondsjsonstr = self.request.get('bondsjsonarea')
-        stoichjsonstr = self.request.get('stoichjsonarea')
+        bondsjsonstr = '''"complexDefinition":[
+    {0}
+]'''.format(self.request.get('bondsjsonarea'))
+
+        stoichjsonstr = '''"modificationDefinition":{{
+    {0}
+}}'''.format(self.request.get('stoichjsonarea'))
+
+
 
         #self.set_cookie(name="jsonbonds", value=self.request.get('jsonbonds'))
         #self.set_cookie(name="jsonstoich", value=self.request.get('jsonstoich'))

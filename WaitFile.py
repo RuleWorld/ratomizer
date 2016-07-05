@@ -22,8 +22,8 @@ import cloudstorage as gcs
 urlfetch.set_default_fetch_deadline(60)
 
 
-#remoteServer = "http://54.214.249.43:9000"
-remoteServer = "http://127.0.0.1:9000"
+remoteServer = "http://54.214.249.43:9000"
+#remoteServer = "http://127.0.0.1:9000"
 
 def convert(input):
     '''
@@ -198,7 +198,7 @@ class WaitFile(webapp2.RequestHandler):
                 'fileName': fileName,
                 'resultMethod': resultMethod
             }
-            template = JINJA_ENVIRONMENT.get_template('wait.html')
+            template = JINJA_ENVIRONMENT.get_template('pages/wait.html')
             self.response.write(template.render(template_values))
         elif result in [-1, '-1']:
             # bad request
@@ -238,15 +238,18 @@ class WaitFile(webapp2.RequestHandler):
                         template_values['message'] = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
 
                     template_values['atolink'] = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
-                    template_values['loglink'] = '<a href="/serve/{1}.log?key={0}">{1}.log</a><br/>'.format(blob_key2, fileName)
+                    template_values['loglink'] = '<a target="_blank" href="/serve/{1}.log?key={0}">{1}.log</a><br/>'.format(blob_key2, fileName)
 
                     template_values['bonds'] = parsedContents['bonds'] 
                     template_values['stoich'] = parsedContents['stoich']
+                    template_values['biogrid'] = parsedContents['biogrid']
+                    template_values['conflict'] = parsedContents['conflict']
+                    template_values['nolexicalconflict'] = parsedContents['nolexicalconflict']
 
                     template_values['jsonbonds'] = self.get_cookie('jsonbonds', '')
                     template_values['jsonstoich'] = self.get_cookie('jsonstoich', '')
                     print template_values
-                    template = JINJA_ENVIRONMENT.get_template('atomizationResults.html')
+                    template = JINJA_ENVIRONMENT.get_template('pages/atomizationResults.html')
 
                     printStatement = template.render(template_values)
 

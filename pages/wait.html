@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html>
+  <head>
+  	<link rel="stylesheet" type="text/css" href="../script/style.css">
+    <link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.6.0/pure-min.css">
+    <link rel="stylesheet" href="../script/grids-responsive-min.css">
+    <link rel="stylesheet" href="../script/font.css">
+    <link rel="stylesheet" href="../script/baby-blue.css">
+
+    <!-- <meta http-equiv="refresh" content="5;url={{redirection}}">-->
+   <script src="../script/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+   <!--<script src="../script/js.cookie.js" type="text/javascript" charset="utf-8" />-->
+   <script src="../script/jquery.cookie.js" type="text/javascript" charset="utf-8"></script>
+   
+	 <script>
+	    var count = 2;
+      //once the page is loaded this function is in charge of checking
+      //whether the result is ready
+      var timer = setInterval(function() {
+      if (--count < 1) {
+
+        $.get( "testFile?ticket={{ticket}}", function(data){
+        	var obj = jQuery.parseJSON( data);
+          console.log(obj.result)
+          // keep waiting 
+        	if (obj.result == -2){
+        		count = 5
+        		
+        	}
+          //this would happen if the user refreshes the download page
+        	else if(obj.result == -1){
+        		$("#content").text("Your request doesn't exist. Please submit your file again")	
+            clearInterval(timer);
+        	}
+
+          //the result is here. display url by calling the WaitFile class.
+        	else{
+        		$("#content").empty()
+        		$.get( "waitFile?ticket={{ticket}}&fileName={{fileName}}&resultMethod={{resultMethod}}", function(data2){
+        		$("#content")
+					.append( data2 )
+				});
+				clearInterval(timer);
+        	}
+        	
+
+
+        });
+        
+      }
+    }, 1000);
+	  </script>
+    <script>
+      //this is the roating logo thing
+  		var url = "../script/rotate.js";
+  		$.getScript(url, function() {
+  			var spinner = new Spinner().spin();
+  			$("#content").append(spinner.el);
+  		}
+  		);
+		
+    </script>
+  </head>
+  <body>
+  	<div id="container">
+{% include "/header.html" %}  <div id="content-container">
+    <div id="content">
+      		Please wait a couple seconds while your request is processed...
+
+  </div>
+  </div>
+</div>
+    <div id="footer">
+      Copyright © Jose Juan Tapia, 2015
+    </div>
+
+  </body>
+</html>
+{% endautoescape %}

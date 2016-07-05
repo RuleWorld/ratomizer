@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<link rel="stylesheet" href="../script/bower_components/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<script src="../script/bower_components/codemirror/lib/codemirror.js"></script>
+<script src="../script/bower_components/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="../script/bower_components/codemirror/addon/comment/continuecomment.js"></script>
+<script src="../script/bower_components/codemirror/addon/comment/comment.js"></script>
+<script src="../script/bower_components/codemirror/mode/javascript/javascript.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+<script> 
+var localbonds = "";
+var localstoich = "";
+
+var temp = '';
+
+if( $.cookie('jsonbonds') != null){    
+    temp += $.cookie('jsonbonds');
+}
+
+
+//var textArea = document.getElementById('bondsjsonarea');
+//var editor = CodeMirror.fromTextArea(textArea);
+//editor.getDoc().setValue(temp);
+
+$("#bondsjsonarea").val(temp);
+
+temp = '';
+if( $.cookie('jsonstoich') != null){    
+    temp += $.cookie('jsonstoich');
+}
+
+
+//textArea = document.getElementById('stoichjsonarea');
+//editor = CodeMirror.fromTextArea(textArea);
+//editor.getDoc().setValue(temp);
+
+$("#stoichjsonarea").val(temp);
+
+
+function generateJson() { 
+    //var txt="document.getElementById("result").value; "
+    //var txt = "{\n";
+    localbonds = "";
+    localstoich = "";
+    var txt = "";
+    //txt += '\t"reactionDefinition" : [\n';
+    //txt += '\t],\n';
+    //txt += '\t"complexDefinition" : [\n';
+
+    if( $.cookie('jsonbonds') != null){    
+        localbonds += $.cookie('jsonbonds');
+        localbonds += ',';
+    }
+    var counter = 0;
+    {% for radioIdx in range(bonds|length) %}
+        if($("input[name=bonds_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localbonds +=",\n";
+            }
+        //if($("#bonds_{{radioIdx}}").is(":checked")) {
+            localbonds += $('input[name=bonds_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+            //{% if(radioIdx < bonds|length -1 ) %}
+            //    localbonds += ",";
+            //{% endif %}
+            //localbonds += "\n";
+        }
+    {% endfor %}
+    {% for radioIdx in range(biogrid|length) %}
+        if($("input[name=biogrid_{{radioIdx}}]:checked").val()) {
+        //if($("#bonds_{{radioIdx}}").is(":checked")) {
+            if(counter != 0){
+                localbonds +=",\n";
+            }
+
+            localbonds += $('input[name=biogrid_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+            //{% if(radioIdx < biogrid|length -1 ) %}
+            //    localbonds += ",";
+            //{% endif %}
+            //localbonds += "\n";
+        }
+    {% endfor %}
+
+    txt += localbonds;
+
+    //txt += '\t]';
+
+    editor.setValue(txt);
+
+    //$("#bondsjsonarea").val(txt);
+    counter = 0;    
+    txt = '';
+    //txt += '\t"modificationDefinition": {\n';
+    if($.cookie('jsonstoich') != null){    
+        localstoich += $.cookie('jsonstoich');
+    }
+    {% for radioIdx in range(stoich|length) %}
+        if($("input[name=stoich_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+
+            localstoich += $('input[name=stoich_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+            //{% if(radioIdx < stoich|length -1 ) %}
+            //    localstoich += ",";
+            //{% endif %}
+            //localstoich += "\n";
+    }
+    {% endfor %}    
+
+    {% for radioIdx in range(conflict|length) %}
+        if($("input[name=confl_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+
+            localstoich += $('input[name=confl_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+    }
+    {% endfor %}    
+
+    {% for radioIdx in range(nolexicalconflict|length) %}
+        if($("input[name=nlconfl_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+
+            localstoich += $('input[name=nlconfl_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+    }
+    {% endfor %}    
+
+    txt += localstoich;
+
+    //txt += '\t}';
+    
+    //txt += '\t"partialComplexDefinition" : [\n';
+    //txt  += '\t]\n';
+
+    
+
+
+    //txt += '}';
+    editor2.setValue(txt);
+
+    //$("#stoichjsonarea").val(txt);
+    //Cookies.set('jsonbonds', 'localbonds', { expires: 7 });
+    //Cookies.set('jsonstoich', 'localstoich', { expires: 7 });
+
+     return true;
+
+};
+
+function jsonFields() { 
+     //$('#atoform').append("<input type='hidden' name='jsonbonds' value='"+localbonds+"' /> <input type='hidden' name='jsonstoich' value='"+localstoich+"' />");
+    //Cookies.set('jsonbonds', 'localbonds', { expires: 7 });
+    //Cookies.set('jsonstoich', 'localstoich', { expires: 7 });
+     $.cookie("jsonbonds", editor.getValue());
+     $.cookie("jsonstoich", editor2.getValue());
+
+
+     return true;
+};
+
+</script>
+{{message|safe}}
+
+
+
+<form class="pure-form pure-form-stacked" id="atoform" name="atoform" action="/postprocess" method="post" onsubmit="jsonFields()">
+<div class="panel-group" id="accordion">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+<a data-toggle="collapse" data-parent="#accordion" href="#collapse1">     
+<font color="red"> Critical atomization issues that must be addressed: </font></a></h4></div>
+<div id="collapse1" class="panel-collapse collapse in">
+<div class="panel-body">
+    {% if(bonds|length > 0 ) %}
+    Atomizer needs direction in determining the full graph structure of the following complexes. Please select from the following options the right protein-protein interaction (or provide your own).<br/>
+        {% for bond in bonds %}
+                <b>{{bond[0]}}</b>
+
+                {% set rowloop = loop %}
+
+            {% for sample in bond[1] %}
+                <label for="bond_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                    <input id="bond_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="bonds_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                </label>
+
+            {% endfor %}
+        <br/>
+        {%endfor %}
+    {% endif %}
+    {% if(stoich|length > 0 ) %}
+    The stoichiometry of the following complexes is unclear
+    <fieldset>
+    {% for st in stoich %}
+
+            <b>{{st[0]}}</b>
+            {% set rowloop = loop %}
+        {% for sample in st[1] %}
+            <label for="stoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                <input id="stoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="stoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+            </label>
+
+        {% endfor %}
+    <br/>
+    {%endfor %}
+    </fieldset>
+    {% endif %}
+</div>
+    </div>
+  </div>
+<div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+    <font color="orange"> Atomization warnings that we suggest to review: </font></a></h4></div>
+    <div id="collapse2" class="panel-collapse collapse">
+      <div class="panel-body">
+    
+    <div class="panel-group" id="coll2_accordion">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">
+        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll1">
+    The following complex binding interactions were resolved using BioGrid, however several options were discovered. Atomizer defaulted to one of them, please verify if this is correct</a></h3></div>
+    <div id="coll2_coll1" class="panel-collapse collapse">
+      <div class="panel-body">
+
+    {% for bond in biogrid %}
+            <b>{{bond[0]}}</b> defaulted to <b>{{bond[1]}}</b>
+
+            {% set rowloop = loop %}
+
+        {% for sample in bond[2] %}
+            <label for="biogrid_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                <input id="biogrid_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="biogrid_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+            </label>
+
+        {% endfor %}
+    <br/>
+    {%endfor %}
+    </div>
+    </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">
+        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll2">
+    The following complexes showed a conflict between the stoichiometric and lexical engine findings. By default the lexical engine
+    findings are given preference, please select an alternative from the stoichiometric engine if so desired.</a></h3></div>
+    <div id="coll2_coll2" class="panel-collapse collapse">
+      <div class="panel-body">
+
+    <fieldset>
+    {% for st in conflict %}
+
+            <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
+            {% set rowloop = loop %}
+            {% for sample in st[2] %}
+            <label for="confl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                <input id="confl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="confl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+            </label>
+        {% endfor %}
+    <br/>
+    {%endfor %}
+    </fieldset>
+    </div>
+    </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">
+        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll3">
+    The following complexes can be constructed in multiple ways according to stoichiometric analysis, however lexical analysis could
+    not determine a definite answer. The final selection was based on closest lexical distance.</a></h3></div>
+    <div id="coll2_coll3" class="panel-collapse collapse">
+      <div class="panel-body">
+
+    <fieldset>
+    {% for st in nolexicalconflict %}
+
+            <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
+            {% set rowloop = loop %}
+            {% for sample in st[2] %}
+            <label for="nlconfl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                <input id="nlconfl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="nlconfl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+            </label>
+        {% endfor %}
+    <br/>
+    {%endfor %}
+    </fieldset>
+    </div>
+    </div>
+    </div>
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+    <button type="button" class="pure-button pure-button-primary" onclick="generateJson();">Generate JSON</button>
+<div style="margin-bottom: 1em">Structure definition:<br>
+    <textarea id="bondsjsonarea" name="bondsjsonarea" rows="10" cols="100"></textarea></div>
+<div style="margin-bottom: 1em">Stoichiometry definition:<br>
+    <textarea id="stoichjsonarea" name="stoichjsonarea" rows="10" cols="100"></textarea></div>
+
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById("bondsjsonarea"), {
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: "application/ld+json",
+        lineWrapping: true
+
+      });
+      var editor2 = CodeMirror.fromTextArea(document.getElementById("stoichjsonarea"), {
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: "application/ld+json",
+        lineWrapping: true
+      });
+
+    </script>
+
+    <button type="submit" class="button-success pure-button">Submit</button><br/>
+
+</form>
+
+{{atolink|safe}}
+{{loglink|safe}}
+
+{% endautoescape %}
