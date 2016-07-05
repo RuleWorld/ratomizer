@@ -15,6 +15,12 @@ from google.appengine.ext import ndb
 from google.appengine.api import app_identity
 
 import logging
+#cookie-related imports
+import Cookie
+import datetime
+import email
+import calendar
+
 
 import xmlrpclib
 import urllib
@@ -26,8 +32,8 @@ import yaml
 from google.appengine.api import urlfetch
 urlfetch.set_default_fetch_deadline(60)
 
-remoteServer = "http://54.214.249.43:9000"
-#remoteServer = "http://127.0.0.1:9000"
+#remoteServer = "http://54.214.249.43:9000"
+remoteServer = "http://127.0.0.1:9000"
 
 
 class GAEXMLRPCTransport(object):
@@ -159,18 +165,51 @@ class ProcessComparison(blobstore_handlers.BlobstoreUploadHandler):
 
         self.redirect('/waitFile?ticket={0}&fileName={1}&fileName2={2}&blob1={3}&blob2={4}&resultMethod=compare'.format(ticket, element, element2, blob_key, blob_key2))
 
+
 class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
+
+    def clear_cookie(self, name, path="/", domain=None):
+        """Deletes the cookie with the given name."""
+        expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
+        self.set_cookie(name, value="", path=path, expires=expires,
+                        domain=domain)
+
+    def set_cookie(self, name, value, domain=None, expires=None, path="/", expires_days=None):
+        """Sets the given cookie name/value with the given options."""
+
+        name = name
+        value = value
+        #if re.search(r"[\x00-\x20]", name + value):   # Don't let us accidentally inject bad stuff
+        #    raise ValueError("Invalid cookie %r:%r" % (name, value))
+        new_cookie = Cookie.BaseCookie()
+        new_cookie[name] = value
+        if domain:
+            new_cookie[name]["domain"] = domain
+        if expires_days is not None and not expires:
+            expires = datetime.datetime.utcnow() + datetime.timedelta(days=expires_days)
+        if expires:
+            timestamp = calendar.timegm(expires.utctimetuple())
+            new_cookie[name]["expires"] = email.utils.formatdate(timestamp, localtime=False, usegmt=True)
+        if path:
+            new_cookie[name]["path"] = path
+        for morsel in new_cookie.values():
+            self.response.headers.add_header('Set-Cookie', morsel.OutputString(None))
+
 
     def post(self):
         """
         Process the file translation form contained in translate.html. Calls a remove service defined
         in <remoteServer>, and sends it a file and an atomization flag.
         """
+        bucket_name = os.environ.get('BUCKET_NAME',
+                                     app_identity.get_default_gcs_bucket_name())
+
         upload_files = self.get_uploads('file')
         blob_info = upload_files[0]
 
         reader = blob_info.open()
-        sbmlContent = xmlrpclib.Binary(reader.read())
+        sbmlstr = reader.read()
+        sbmlContent = xmlrpclib.Binary(sbmlstr)
         atomizeString = self.request.get('atomize')
         reaction = self.request.get('reaction')
         species = self.request.get('species')
@@ -182,19 +221,100 @@ class ProcessFile(blobstore_handlers.BlobstoreUploadHandler):
             jsonContent = xmlrpclib.Binary(reader.read())
         else:
             jsonContent = None
-        print jsonContent
         # print 'fsdgsdgsd',atomize
         # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
         # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
+
         if jsonContent:
             ticket = s.atomize(sbmlContent, atomizeString, reaction, species, jsonContent)
         else:
             ticket = s.atomize(sbmlContent, atomizeString, reaction, species)
         # self.response.write(result)
 
-        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl&resultMethod=atomize'.format(ticket, blob_info.filename))
+        element = blob_info.filename
+        
+        gcs_filename = '/{1}/{0}'.format(element, bucket_name)
+        blob_key = WaitFile.CreateFile(gcs_filename, sbmlstr.decode('utf-8', 'replace'))
+        self.clear_cookie('jsonbonds')
+        self.clear_cookie('jsonstoich')
+        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl&blob1={2}&resultMethod=atomize'.format(ticket, blob_info.filename,blob_key))
+
+
+class PostProcessFile(blobstore_handlers.BlobstoreUploadHandler):
+
+    def get_cookie(self, name, default=None):
+        """Gets the value of the cookie with the given name,else default."""
+        if name in self.request.cookies:
+            return self.request.cookies[name]
+        return default
+
+    def set_cookie(self, name, value, domain=None, expires=None, path="/", expires_days=None):
+        """Sets the given cookie name/value with the given options."""
+
+        name = name
+        value = value
+        #if re.search(r"[\x00-\x20]", name + value):   # Don't let us accidentally inject bad stuff
+        #    raise ValueError("Invalid cookie %r:%r" % (name, value))
+        new_cookie = Cookie.BaseCookie()
+        new_cookie[name] = value
+        if domain:
+            new_cookie[name]["domain"] = domain
+        if expires_days is not None and not expires:
+            expires = datetime.datetime.utcnow() + datetime.timedelta(days=expires_days)
+        if expires:
+            timestamp = calendar.timegm(expires.utctimetuple())
+            new_cookie[name]["expires"] = email.utils.formatdate(timestamp, localtime=False, usegmt=True)
+        if path:
+            new_cookie[name]["path"] = path
+        for morsel in new_cookie.values():
+            self.response.headers.add_header('Set-Cookie', morsel.OutputString(None))
+
+
+    def post(self):
+        """
+        post Process the file translation with user information sent from matchMolecules.html. Calls a remote service defined
+        in <remoteServer>, and sends it a file and an atomization flag.
+        """
+        bucket_name = os.environ.get('BUCKET_NAME',
+                                     app_identity.get_default_gcs_bucket_name())
+
+
+        fileName1 =  self.get_cookie('fileName1')
+        blob1 =  self.get_cookie('blob1')
+
+        sbmlContent = xmlrpclib.Binary(blobstore.fetch_data(blob1, 0, 900000))
+        bondsjsonstr = self.request.get('bondsjsonarea')
+        stoichjsonstr = self.request.get('stoichjsonarea')
+
+        #self.set_cookie(name="jsonbonds", value=self.request.get('jsonbonds'))
+        #self.set_cookie(name="jsonstoich", value=self.request.get('jsonstoich'))
+        jsonstr = '''
+{{
+    "reactionDefinition" : [],
+    {0},
+    {1},
+    "partialComplexDefinition":[]
+}}
+'''.format(bondsjsonstr, stoichjsonstr)
+        print jsonstr
+
+        if len(jsonstr) > 0:
+            jsonContent = xmlrpclib.Binary(jsonstr)
+
+        # https://developers.google.com/appengine/docs/python/urlfetch/fetchfunction
+        # https://groups.google.com/forum/#!topic/google-appengine/XbrJvt9LfuI
+
+        s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
+        #s = xmlrpclib.ServerProxy('http://127.0.0.1:9000',GAEXMLRPCTransport())
+        if jsonContent:
+            ticket = s.atomize(sbmlContent, 'atomize', '', '', jsonContent)
+        else:
+            ticket = s.atomize(sbmlContent, 'atomize', '', '')
+        # self.response.write(result)
+        
+        self.redirect('/waitFile?ticket={0}&fileName={1}.bngl&blob1={2}&resultMethod=atomize'.format(ticket, fileName1,blob1))
 
 
 class WaitFileJson(webapp2.RequestHandler):
@@ -393,6 +513,8 @@ app = webapp2.WSGIApplication([
     ('/translate', Translate),
     ('/serve/([^/]+)?', ServeHandler),
     ('/process', ProcessFile),
+    ('/postprocess', PostProcessFile),
+
     ('/processComparison', ProcessComparison),
     ('/refine', Refine),
     ('/comparison', Comparison),

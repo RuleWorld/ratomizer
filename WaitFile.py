@@ -11,6 +11,7 @@ import calendar
 import yaml
 import json
 from writeGML import write_gml
+from ratomizerUtils import parseLog
 
 from google.appengine.api import urlfetch
 from google.appengine.api import app_identity
@@ -21,8 +22,8 @@ import cloudstorage as gcs
 urlfetch.set_default_fetch_deadline(60)
 
 
-remoteServer = "http://54.214.249.43:9000"
-#remoteServer = "http://127.0.0.1:9000"
+#remoteServer = "http://54.214.249.43:9000"
+remoteServer = "http://127.0.0.1:9000"
 
 def convert(input):
     '''
@@ -168,6 +169,10 @@ class WaitFile(webapp2.RequestHandler):
         blob2 = self.request.get("blob2")
         graphType = self.request.get("graphType")
 
+        #variables from atomization post processing
+        jsonbonds = self.request.get("jsonbonds")
+        jsonstoich = self.request.get("jsonstoich")
+
         resultMethod = self.request.get("resultMethod")
         s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
         result = s.isready(int(ticket))
@@ -179,6 +184,10 @@ class WaitFile(webapp2.RequestHandler):
         
         if graphType not in [None, '']:
             self.set_cookie(name="graphType", value=graphType)
+
+        if jsonbonds not in [None, '']:
+            self.set_cookie(name="jsonbonds", value=jsonbonds)
+            self.set_cookie(name="jsonstoich", value=jsonstoich)
 
         # the first time it loads the page, if the result isnt immediate it will enter this branch
         if result in [-2, '-2']:
@@ -200,10 +209,12 @@ class WaitFile(webapp2.RequestHandler):
             # when the result is here it will enter this branch
             s = xmlrpclib.ServerProxy(remoteServer, GAEXMLRPCTransport())
             result = s.getDict(int(ticket))
+
             if result in ['-5', -5]:
                 self.response.write("There was an error processing your request")
                 return
             if resultMethod == 'atomize':
+                template_values = {}
                 bucket_name = os.environ.get('BUCKET_NAME',
                                              app_identity.get_default_gcs_bucket_name())
 
@@ -211,29 +222,46 @@ class WaitFile(webapp2.RequestHandler):
                 blob_key = CreateFile(gcs_filename, result[0].decode('utf-8', 'replace'))
 
                 log_contents = result[1].decode('utf-8', 'replace')
-
+                print '------', log_contents
+                parsedContents = parseLog(log_contents)
                 # there's some issues in teh atomization process/we know because the log has a non-zero length
                 if len(result[1]) > 0:
                     gcs_filename2 = '/{1}/{0}.log'.format(fileName, bucket_name)
                     blob_key2 = CreateFile(gcs_filename2, log_contents, content_type='text/plain')
 
+                    # this information is used to build the atomization log form that is passed to the user
                     if any([x in log_contents for x in ['ATO2', 'SCT2']]):
-                        printStatement = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
+                        template_values['message'] = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
                     elif any([x in log_contents for x in ['ATO1', 'SCT1']]):                        
-                        printStatement = '<p><font color="orange"> The atomization process contains warnings. Please check the atomization log for instructions on what information needs to be verified.</font></p><br/>'
+                        template_values['message'] = '<p><font color="orange"> The atomization process contains warnings. Please check the atomization log for instructions on what information needs to be verified.</font></p><br/>'
                     else:
-                        printStatement = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
+                        template_values['message'] = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
 
-                    printStatement += '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
-                    printStatement += '<a href="/serve/{1}.log?key={0}">{1}.log</a><br/>'.format(blob_key2, fileName)
+                    template_values['atolink'] = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
+                    template_values['loglink'] = '<a href="/serve/{1}.log?key={0}">{1}.log</a><br/>'.format(blob_key2, fileName)
+
+                    template_values['bonds'] = parsedContents['bonds'] 
+                    template_values['stoich'] = parsedContents['stoich']
+
+                    template_values['jsonbonds'] = self.get_cookie('jsonbonds', '')
+                    template_values['jsonstoich'] = self.get_cookie('jsonstoich', '')
+                    print template_values
+                    template = JINJA_ENVIRONMENT.get_template('atomizationResults.html')
+
+                    printStatement = template.render(template_values)
+
 
                 else:
                     printStatement = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
 
 
-                printStatement += '<a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}&graphtype=contactmap">Visualize contact map</a>'.format(blob_key, fileName)
+                printStatement += '\n\n<a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}&graphtype=contactmap">Visualize contact map</a>'.format(blob_key, fileName)
                 printStatement += '<br/><a target="_blank" href="/graphpredirect?bnglfile={0}&filename={1}&graphtype=std">Visualize state transition diagram</a>'.format(blob_key, fileName)
                 self.response.write(printStatement)
+
+                #template = JINJA_ENVIRONMENT.get_template('refine.html')
+                #self.response.write(template.render(template_values))
+
 
             elif resultMethod in ['', 'file']:
                 bucket_name = os.environ.get('BUCKET_NAME',
