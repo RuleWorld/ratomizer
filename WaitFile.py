@@ -242,6 +242,7 @@ class WaitFile(webapp2.RequestHandler):
 
                     template_values['bonds'] = parsedContents['bonds'] 
                     template_values['stoich'] = parsedContents['stoich']
+                    template_values['modstoich'] = parsedContents['modstoich']                    
                     template_values['biogrid'] = parsedContents['biogrid']
                     template_values['conflict'] = parsedContents['conflict']
                     template_values['nolexicalconflict'] = parsedContents['nolexicalconflict']

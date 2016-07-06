@@ -50,6 +50,19 @@ def parseLog(rawLog):
             options = sorted(list(options))
             categorizedLog['nolexicalconflict'].append((splitentry[2], splitentry[6], options))
 
+        elif 'SCT212' in splitentry[0]:
+            options = set([])
+            candidates = eval(splitentry[5])
+            for splitoption in candidates:
+                value = [x for x in candidates if x != splitoption]
+                newChemical = '{0}{1}'.format(splitoption, splitentry[6])
+                value.append(newChemical)
+                optionstxt = '''           "{2}":["{3}"],
+            "{0}":{1}'''.format(splitentry[3], json.dumps(value), newChemical, splitoption)
+                options.add((str(splitoption), optionstxt))
+            options = sorted(list(options))
+            categorizedLog['modstoich'].append((splitentry[3], splitentry[2], options))            
+
 
     return categorizedLog
 

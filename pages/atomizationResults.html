@@ -49,11 +49,12 @@ function generateJson() {
     //txt += '\t],\n';
     //txt += '\t"complexDefinition" : [\n';
 
+    var counter = 0;
+
     if( $.cookie('jsonbonds') != null){    
         localbonds += $.cookie('jsonbonds');
-        localbonds += ',';
+        counter += 1;
     }
-    var counter = 0;
     {% for radioIdx in range(bonds|length) %}
         if($("input[name=bonds_{{radioIdx}}]:checked").val()) {
             if(counter != 0){
@@ -96,6 +97,7 @@ function generateJson() {
     //txt += '\t"modificationDefinition": {\n';
     if($.cookie('jsonstoich') != null){    
         localstoich += $.cookie('jsonstoich');
+        counter += 1;
     }
     {% for radioIdx in range(stoich|length) %}
         if($("input[name=stoich_{{radioIdx}}]:checked").val()) {
@@ -111,6 +113,22 @@ function generateJson() {
             //localstoich += "\n";
     }
     {% endfor %}    
+
+    {% for radioIdx in range(modstoich|length) %}
+        if($("input[name=modstoich_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+
+            localstoich += $('input[name=modstoich_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+            //{% if(radioIdx < stoich|length -1 ) %}
+            //    localstoich += ",";
+            //{% endif %}
+            //localstoich += "\n";
+    }
+    {% endfor %}    
+
 
     {% for radioIdx in range(conflict|length) %}
         if($("input[name=confl_{{radioIdx}}]:checked").val()) {
@@ -213,6 +231,25 @@ function jsonFields() {
     {%endfor %}
     </fieldset>
     {% endif %}
+
+    {% if(modstoich|length > 0 ) %}
+    Atomizer needs help determining which subunit in the following complexes is modified
+    <fieldset>
+    {% for st in modstoich %}
+
+        <b>{{st[1]}}</b> becomes <b>{{st[0]}}</b>
+        {% set rowloop = loop %}
+        {% for sample in st[2] %}
+            <label for="modstoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="modstoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+            </label>
+
+        {% endfor %}
+    <br/>
+    {%endfor %}
+    </fieldset>
+    {% endif %}
+
 </div>
     </div>
   </div>
