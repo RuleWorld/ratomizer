@@ -2,6 +2,10 @@ from collections import defaultdict
 import json
 
 def parseLog(rawLog):
+    """
+    creates the information that will be used to build up radio buttons in atomizationResults.html
+    based on the atomization log
+    """
     splitLog = rawLog.split('\n')
     categorizedLog = defaultdict(list)
     print splitLog
@@ -25,16 +29,24 @@ def parseLog(rawLog):
             options = sorted(list(options))
             categorizedLog['stoich'].append((str(splitentry[2]).translate(None, "'"), options))
         elif 'ATO111' in splitentry[0]:
-            options = set([])
+            options = []
+            i = -1
             for splitoption in eval(splitentry[4]):
                 if splitoption[0] != splitoption[1]:
                     optionstxt = """["{0}",[["{0}","{3}",[]]]],
             ["{2}",[["{2}","{1}",[]]]]""".format(splitoption[0], splitoption[0].lower(), splitoption[1], splitoption[1].lower())
                 else:
                     optionstxt = '["{0}",[["{0}","{1}",[]]]]'.format(splitoption[0], splitoption[0].lower())
-                options.add((str(splitoption).translate(None, "'"), optionstxt))
-            options = sorted(list(options))
+                if (str(splitoption).translate(None, "'"), optionstxt) not in options:
+                    options.append((str(splitoption).translate(None, "'"), optionstxt))
+                    if str(splitoption) == str(splitentry[6]):
+                        i = len(options) - 1
+
+            # place the option choose by atomizer as the first radio button
+            if(i > 0):
+                options[i], options[0] = options[0], options[i]
             categorizedLog['biogrid'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
+
         elif 'SCT112' in splitentry[0] or 'SCT111' in splitentry[0]:
             options = set([])
             for splitoption in eval(splitentry[4]):
@@ -42,12 +54,19 @@ def parseLog(rawLog):
                 options.add((str(splitoption).translate(None, "'"), optionstxt))
             options = sorted(list(options))
             categorizedLog['conflict'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
+
         elif 'SCT113' in splitentry[0]:
-            options = set([])
+            i = -1
+            options = []
             for splitoption in eval(splitentry[4]):
                 optionstxt = '"{0}":{1}'.format(splitentry[2], json.dumps(splitoption))
-                options.add((str(splitoption).translate(None, "'"), optionstxt))
-            options = sorted(list(options))
+                if (str(splitoption).translate(None, "'"), optionstxt) not in options:
+                    options.append((str(splitoption).translate(None, "'"), optionstxt))
+                    if str(splitoption) == str(splitentry[6]):
+                        i = len(options) - 1
+            # place the option choose by atomizer as the first radio button            
+            if(i > 0):
+                options[i], options[0] = options[0], options[i]
             categorizedLog['nolexicalconflict'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
 
         elif 'SCT212' in splitentry[0]:

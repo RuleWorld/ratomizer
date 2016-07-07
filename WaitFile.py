@@ -252,7 +252,6 @@ class WaitFile(webapp2.RequestHandler):
 
                     template_values['jsonbonds'] = self.get_cookie('jsonbonds', '')
                     template_values['jsonstoich'] = self.get_cookie('jsonstoich', '')
-                    print template_values
                     template = JINJA_ENVIRONMENT.get_template('pages/atomizationResults.html')
 
                     printStatement = template.render(template_values)
