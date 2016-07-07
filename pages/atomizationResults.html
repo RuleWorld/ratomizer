@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% autoescape true %}
+
 <link rel="stylesheet" href="../script/bower_components/codemirror/lib/codemirror.css">
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
 <script src="../script/bower_components/codemirror/lib/codemirror.js"></script>
@@ -15,7 +16,7 @@ var localstoich = "";
 
 var temp = '';
 
-if( $.cookie('jsonbonds') != null){    
+if( $.cookie('jsonbonds') != null && $.cookie('jsonbonds') != ""){
     temp += $.cookie('jsonbonds');
 }
 
@@ -27,7 +28,7 @@ if( $.cookie('jsonbonds') != null){
 $("#bondsjsonarea").val(temp);
 
 temp = '';
-if( $.cookie('jsonstoich') != null){    
+if( $.cookie('jsonstoich') != null && $.cookie('jsonstoich') != ""){
     temp += $.cookie('jsonstoich');
 }
 
@@ -37,7 +38,6 @@ if( $.cookie('jsonstoich') != null){
 //editor.getDoc().setValue(temp);
 
 $("#stoichjsonarea").val(temp);
-
 
 function generateJson() { 
     //var txt="document.getElementById("result").value; "
@@ -51,7 +51,7 @@ function generateJson() {
 
     var counter = 0;
 
-    if( $.cookie('jsonbonds') != null){    
+    if( $.cookie('jsonbonds') != null && $.cookie('jsonbonds') != ""){
         localbonds += $.cookie('jsonbonds');
         counter += 1;
     }
@@ -95,7 +95,7 @@ function generateJson() {
     counter = 0;    
     txt = '';
     //txt += '\t"modificationDefinition": {\n';
-    if($.cookie('jsonstoich') != null){    
+    if($.cookie('jsonstoich') != null && $.cookie('jsonstoich') != ""){    
         localstoich += $.cookie('jsonstoich');
         counter += 1;
     }
@@ -185,167 +185,206 @@ function jsonFields() {
 };
 
 </script>
-{{message|safe}}
 
 
 
 <form class="pure-form pure-form-stacked" id="atoform" name="atoform" action="/postprocess" method="post" onsubmit="jsonFields()">
-<div class="panel-group" id="accordion">
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-<a data-toggle="collapse" data-parent="#accordion" href="#collapse1">     
-<font color="red"> Critical atomization issues that must be addressed: </font></a></h4></div>
-<div id="collapse1" class="panel-collapse collapse in">
-<div class="panel-body">
-    {% if(bonds|length > 0 ) %}
-    Atomizer needs direction in determining the full graph structure of the following complexes. Please select from the following options the right protein-protein interaction (or provide your own).<br/>
-        {% for bond in bonds %}
-                <b>{{bond[0]}}</b>
 
-                {% set rowloop = loop %}
+  <ul class="nav nav-tabs">
+  <li class="active"><a data-toggle="tab" href="#home">Atomization status</a></li>
+    <li><a data-toggle="tab" href="#errormenu">Errors ({{ stoich|length + bonds|length + modstoich|length + biogrid|length}})</a></li>
+    <li><a data-toggle="tab" href="#warningmenu">Warnings ({{conflict|length + nolexicalconflict|length}})</a></li>
+  </ul>
 
-            {% for sample in bond[1] %}
-                <label for="bond_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                    <input id="bond_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="bonds_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-                </label>
+<div class="tab-content">
+    <div id="home" class="tab-pane fade in active">
+        {{message|safe}}
+    </div>
+    <div id="errormenu" class="tab-pane fade">
+        <h3><font color="red"> &raquo; Critical atomization issues that must be addressed: </font></h3>
 
-            {% endfor %}
-        <br/>
-        {%endfor %}
-    {% endif %}
-    {% if(stoich|length > 0 ) %}
-    The stoichiometry of the following complexes is unclear
-    <fieldset>
-    {% for st in stoich %}
+        <div class="panel-group" id="coll1_accordion">
+            {% if(bonds|length > 0 ) %}
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">
+                    <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll1">
 
-            <b>{{st[0]}}</b>
-            {% set rowloop = loop %}
-        {% for sample in st[1] %}
-            <label for="stoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                <input id="stoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="stoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-            </label>
+                    &raquo; Atomizer needs direction in determining the full graph structure of the following complexes. Please select from the following options the right protein-protein interaction (or provide your own).</a></h3></div>
+                    <div id="coll1_coll1" class="panel-collapse collapse in">
+                      <div class="panel-body">
 
-        {% endfor %}
-    <br/>
-    {%endfor %}
-    </fieldset>
-    {% endif %}
+                        {% for bond in bonds %}
+                            <b>{{bond[0]}}</b>
 
-    {% if(modstoich|length > 0 ) %}
-    Atomizer needs help determining which subunit in the following complexes is modified
-    <fieldset>
-    {% for st in modstoich %}
+                            {% set rowloop = loop %}
+                            {% for sample in bond[1] %}
+                                <label for="bond_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="bond_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="bonds_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                </label>
 
-        <b>{{st[1]}}</b> becomes <b>{{st[0]}}</b>
-        {% set rowloop = loop %}
-        {% for sample in st[2] %}
-            <label for="modstoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="modstoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-            </label>
+                            {% endfor %}
+                            <br/>
+                        {%endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if(stoich|length > 0 ) %}
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll2">
 
-        {% endfor %}
-    <br/>
-    {%endfor %}
-    </fieldset>
-    {% endif %}
+                        &raquo; The stoichiometry of the following complexes is unclear</a></h3>
+                    </div>
+                    <div id="coll1_coll2" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <fieldset>
+                            {% for st in stoich %}
 
+                                <b>{{st[0]}}</b>
+                                {% set rowloop = loop %}
+                                {% for sample in st[1] %}
+                                    <label for="stoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                        <input id="stoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="stoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                    </label>
+                                {% endfor %}
+                                <br/>
+                            {%endfor %}
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if(modstoich|length > 0 ) %}
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll3">
+                        &raquo; Atomizer needs help determining which subunit in the following complexes is modified</a></h3>
+                    </div>
+                    <div id="coll1_coll3" class="panel-collapse collapse">
+                      <div class="panel-body">
+
+                    <fieldset>
+                    {% for st in modstoich %}
+
+                        <b>{{st[1]}}</b> becomes <b>{{st[0]}}</b>
+                        {% set rowloop = loop %}
+                        {% for sample in st[2] %}
+                            <label for="modstoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="modstoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                            </label>
+
+                        {% endfor %}
+                    <br/>
+                    {%endfor %}
+                    </fieldset>
+                    </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if(biogrid|length > 0 ) %}
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll4">
+                        &raquo; The following complex binding interactions were resolved using BioGrid, however several options were discovered. Atomizer defaulted to one of them, please verify if this is correct</a></h3>
+                    </div>
+                    <div id="coll1_coll4" class="panel-collapse collapse">
+                      <div class="panel-body">
+
+                        {% for bond in biogrid %}
+                                <b>{{bond[0]}}</b> defaulted to <b>{{bond[1]}}</b>
+
+                                {% set rowloop = loop %}
+
+                            {% for sample in bond[2] %}
+                                <label for="biogrid_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="biogrid_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="biogrid_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                </label>
+
+                            {% endfor %}
+                        <br/>
+                        {%endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+    <div id="warningmenu" class="tab-pane fade">
+        <h3><font color="orange"> &raquo; Atomization warnings that we suggest to review: </font></h3>
+        <div class="panel-group" id="coll2_accordion">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                    <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll2">
+                    &raquo; The following complexes showed a conflict between the stoichiometric and lexical engine findings. By default the lexical engine
+                    findings are given preference, please select an alternative from the stoichiometric engine if so desired.</a></h3>
+                </div>
+                <div id="coll2_coll2" class="panel-collapse collapse in">
+                    <div class="panel-body">
+
+                        <fieldset>
+                        {% for st in conflict %}
+
+                                <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
+                                {% set rowloop = loop %}
+                                {% for sample in st[2] %}
+                                <label for="confl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="confl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="confl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                </label>
+                            {% endfor %}
+                        <br/>
+                        {%endfor %}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll3">
+                    &raquo; The following complexes can be constructed in multiple ways according to stoichiometric analysis, however lexical analysis could
+                    not determine a definite answer. The final selection was based on closest lexical distance.</a></h3>
+                </div>
+                <div id="coll2_coll3" class="panel-collapse collapse">
+                  <div class="panel-body">
+
+                        <fieldset>
+                        {% for st in nolexicalconflict %}
+
+                                <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
+                                {% set rowloop = loop %}
+                                {% for sample in st[2] %}
+                                <label for="nlconfl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="nlconfl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="nlconfl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                </label>
+                            {% endfor %}
+                        <br/>
+                        {%endfor %}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-    </div>
-  </div>
-<div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-    <font color="orange"> Atomization warnings that we suggest to review: </font></a></h4></div>
-    <div id="collapse2" class="panel-collapse collapse">
-      <div class="panel-body">
-    
-    <div class="panel-group" id="coll2_accordion">
-    <div class="panel panel-default">
-        <div class="panel-heading">
-          <h3 class="panel-title">
-        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll1">
-    The following complex binding interactions were resolved using BioGrid, however several options were discovered. Atomizer defaulted to one of them, please verify if this is correct</a></h3></div>
-    <div id="coll2_coll1" class="panel-collapse collapse">
-      <div class="panel-body">
 
-    {% for bond in biogrid %}
-            <b>{{bond[0]}}</b> defaulted to <b>{{bond[1]}}</b>
 
-            {% set rowloop = loop %}
 
-        {% for sample in bond[2] %}
-            <label for="biogrid_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                <input id="biogrid_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="biogrid_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-            </label>
 
-        {% endfor %}
-    <br/>
-    {%endfor %}
+    <button type="button" class="pure-button pure-button-primary" onclick="generateJson();" data-toggle="tooltip" title="Click here after resolving some or all of the issues listed in the error and warning tabs">Generate JSON</button>
+    <div style="margin-bottom: 1em">Structure definition:<br>
+        <textarea id="bondsjsonarea" name="bondsjsonarea" rows="10" cols="100"></textarea>
     </div>
+    <div style="margin-bottom: 1em">Stoichiometry definition:<br>
+        <textarea id="stoichjsonarea" name="stoichjsonarea" rows="10" cols="100"></textarea>
     </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading">
-          <h3 class="panel-title">
-        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll2">
-    The following complexes showed a conflict between the stoichiometric and lexical engine findings. By default the lexical engine
-    findings are given preference, please select an alternative from the stoichiometric engine if so desired.</a></h3></div>
-    <div id="coll2_coll2" class="panel-collapse collapse">
-      <div class="panel-body">
-
-    <fieldset>
-    {% for st in conflict %}
-
-            <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
-            {% set rowloop = loop %}
-            {% for sample in st[2] %}
-            <label for="confl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                <input id="confl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="confl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-            </label>
-        {% endfor %}
-    <br/>
-    {%endfor %}
-    </fieldset>
-    </div>
-    </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading">
-          <h3 class="panel-title">
-        <a data-toggle="collapse" data-parent="#coll2_accordion" href="#coll2_coll3">
-    The following complexes can be constructed in multiple ways according to stoichiometric analysis, however lexical analysis could
-    not determine a definite answer. The final selection was based on closest lexical distance.</a></h3></div>
-    <div id="coll2_coll3" class="panel-collapse collapse">
-      <div class="panel-body">
-
-    <fieldset>
-    {% for st in nolexicalconflict %}
-
-            <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
-            {% set rowloop = loop %}
-            {% for sample in st[2] %}
-            <label for="nlconfl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                <input id="nlconfl_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="nlconfl_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-            </label>
-        {% endfor %}
-    <br/>
-    {%endfor %}
-    </fieldset>
-    </div>
-    </div>
-    </div>
-    </div>
-</div>
-    </div>
-  </div>
-</div>
-    <button type="button" class="pure-button pure-button-primary" onclick="generateJson();">Generate JSON</button>
-<div style="margin-bottom: 1em">Structure definition:<br>
-    <textarea id="bondsjsonarea" name="bondsjsonarea" rows="10" cols="100"></textarea></div>
-<div style="margin-bottom: 1em">Stoichiometry definition:<br>
-    <textarea id="stoichjsonarea" name="stoichjsonarea" rows="10" cols="100"></textarea></div>
 
     <script>
       var editor = CodeMirror.fromTextArea(document.getElementById("bondsjsonarea"), {
@@ -364,8 +403,12 @@ function jsonFields() {
 
     </script>
 
-    <button type="submit" class="button-success pure-button">Submit</button><br/>
-
+    <button type="submit" data-toggle="tooltip" title="Send the file for atomization with a user configuration file" class="button-success pure-button">Submit</button><br/>
+    <script>
+        $(document).ready(function(){
+        $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
 </form>
 
 {{atolink|safe}}

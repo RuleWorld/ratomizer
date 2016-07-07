@@ -231,11 +231,14 @@ class WaitFile(webapp2.RequestHandler):
 
                     # this information is used to build the atomization log form that is passed to the user
                     if any([x in log_contents for x in ['ATO2', 'SCT2']]):
-                        template_values['message'] = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
+                        #template_values['message'] = '<p><font color="red"> The atomization process is not complete. Please check the atomization log for instructions on what information needs to be provided.</font></p><br/>'
+                        template_values['message'] = '''<div class="alert alert-danger">The atomization process is not complete. Please check the error and warning tabs for instructions on what information needs to be provided. Then click on the Generate JSON button to generate a user configuration file for Atomizer.</div>'''
                     elif any([x in log_contents for x in ['ATO1', 'SCT1']]):                        
-                        template_values['message'] = '<p><font color="orange"> The atomization process contains warnings. Please check the atomization log for instructions on what information needs to be verified.</font></p><br/>'
+                        #template_values['message'] = '<p><font color="orange"> The atomization process contains warnings. Please check the atomization log for instructions on what information needs to be verified.</font></p><br/>'
+                        template_values['message'] = '<div class="alert alert-warning">The atomization process contains warnings. Please check the warning tab for instructions on what information needs to be verified.  Then click on the Generate JSON button to generate a user configuration file for Atomizer.</div>'
                     else:
-                        template_values['message'] = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
+                        template_values['message'] = '<div class="alert alert-success">There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</div>'
+                        #template_values['message'] = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
 
                     template_values['atolink'] = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
                     template_values['loglink'] = '<a target="_blank" href="/serve/{1}.log?key={0}">{1}.log</a><br/>'.format(blob_key2, fileName)
