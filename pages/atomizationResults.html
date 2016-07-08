@@ -2,13 +2,13 @@
 {% autoescape true %}
 
 <link rel="stylesheet" href="../script/bower_components/codemirror/lib/codemirror.css">
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" type="text/javascript" charset="utf-8"></script>
+
 <script src="../script/bower_components/codemirror/lib/codemirror.js"></script>
 <script src="../script/bower_components/codemirror/addon/edit/matchbrackets.js"></script>
 <script src="../script/bower_components/codemirror/addon/comment/continuecomment.js"></script>
 <script src="../script/bower_components/codemirror/addon/comment/comment.js"></script>
 <script src="../script/bower_components/codemirror/mode/javascript/javascript.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
 <script> 
 var localbonds = "";
@@ -209,8 +209,8 @@ function jsonFields() {
                     <div class="panel-heading">
                       <h3 class="panel-title">
                     <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll1">
-
-                    &raquo; Atomizer needs direction in determining the full graph structure of the following complexes. Please select from the following options the right protein-protein interaction (or provide your own).</a></h3></div>
+                    <div>
+                    &raquo; Atomizer needs direction in determining the full graph structure of the following complexes. Please select from the following options the right protein-protein interaction (or provide your own).</div></a></h3></div>
                     <div id="coll1_coll1" class="panel-collapse collapse in">
                       <div class="panel-body">
 
@@ -235,8 +235,8 @@ function jsonFields() {
                     <div class="panel-heading">
                       <h3 class="panel-title">
                         <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll2">
-
-                        &raquo; The stoichiometry of the following complexes is unclear</a></h3>
+                        <div>    
+                        &raquo; The stoichiometry of the following complexes is unclear</div></a></h3>
                     </div>
                     <div id="coll1_coll2" class="panel-collapse collapse">
                         <div class="panel-body">
@@ -403,7 +403,7 @@ function jsonFields() {
 
     </script>
 
-    <button type="submit" data-toggle="tooltip" title="Send the file for atomization with a user configuration file" class="button-success pure-button">Submit</button><br/>
+    <button type="submit" data-toggle="tooltip" title="Send the file for atomization with the options defined above" class="button-success pure-button">Submit</button><br/>
     <script>
         $(document).ready(function(){
         $('[data-toggle="tooltip"]').tooltip();

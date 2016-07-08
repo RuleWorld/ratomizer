@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+<head>
+    {% block head %}
+ <link rel="stylesheet" type="text/css" href="../script/style.css">
+
+    <link rel="stylesheet" href="script/bootstrap.css">
+
+    <link rel="stylesheet" type="text/css" href="../script/normalize.css">
+<link rel="stylesheet" href="../script/bower_components/font-awesome/css/font-awesome.css">
+ <link rel="stylesheet" href="../script/fonts.css">
+<link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.6.0/pure-min.css">
+ {% block dependencies %}{% endblock %}
+<title>{% block title %}{% endblock %} - Reaction Atomizer</title>
+    {% endblock %}
+</head>
+<body>
+    <div id="container">
+    {% include "/header.html" %}  
+    <div id="content-container">
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="aside">
+    {% block aside %}{% endblock %}
+    </div>
+
+    <div id="footer">
+        {% block footer %}
+      Copyright © Jose Juan Tapia, 2016
+        {% endblock %}
+    </div>
+    </div>
+    </div>
+
+</body>
+</html>
+{% endautoescape %}

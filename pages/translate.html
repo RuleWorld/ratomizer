@@ -1,33 +1,8 @@
-<!DOCTYPE html>
-{% autoescape true %}
-<html>
-<head>
-<link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.6.0/pure-min.css">
- <link rel="stylesheet" type="text/css" href="../script/style.css">
- <link rel="stylesheet" href="../script/font.css">
- <link rel="stylesheet" href="../script/baby-blue.css">
-  </head>
-  <body>
-          <style scoped>
+{% extends "pages/template.html" %}
 
-        .button-success,
-        .button-secondary {
-            color: white;
-            border-radius: 4px;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-        }
+{% block title %}SBML2BNGL{% endblock %}
 
-        .button-success {
-            background: rgb(28, 184, 65); /* this is a green */
-        }
-
-  
-    </style>
-
-    <div id="container">
-{% include "/header.html" %}  <div id="content-container">
-
-    <div id="content">
+{% block content %}
       <h2>
         SBML 2 BNGL
       </h2>
@@ -50,25 +25,12 @@
       <input type="submit" class="button-success pure-button" value="Submit">
     </fieldset>
     </form>
-  </div>
-    <div id="aside">
+{% endblock %}
+{% block aside %}
       <h3>
         Current version
       </h3>
       <p>
       May 31, 2016
       </p>
-    </div>
-    <br/>
-    <br/>
-    <br/>
-    <br/>
-
-    <div id="footer">
-      Copyright © Jose Juan Tapia, 2016
-    </div>
-  </div>
-</div>
-  </body>
-</html>
-{% endautoescape %}
+{% endblock %}

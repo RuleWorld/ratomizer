@@ -1,17 +1,21 @@
-<!DOCTYPE html>
-{% autoescape true %}
-<html>
-  <head>
-  	<link rel="stylesheet" type="text/css" href="../script/style.css">
-    <link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.6.0/pure-min.css">
+{% extends "pages/template.html" %}
+{% block dependencies %}
+
+
     <link rel="stylesheet" href="../script/grids-responsive-min.css">
-    <link rel="stylesheet" href="../script/font.css">
-    <link rel="stylesheet" href="../script/baby-blue.css">
 
     <!-- <meta http-equiv="refresh" content="5;url={{redirection}}">-->
-   <script src="../script/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"" type="text/javascript" charset="utf-8"></script>
+
+   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+
    <!--<script src="../script/js.cookie.js" type="text/javascript" charset="utf-8" />-->
    <script src="../script/jquery.cookie.js" type="text/javascript" charset="utf-8"></script>
+<link rel="stylesheet" href="../script/font-awesome.css">
+ <link rel="stylesheet" href="../script/fonts.css">
+ <link rel="stylesheet" type="text/css" href="../script/style.css">
    
 	 <script>
 	    var count = 2;
@@ -61,20 +65,7 @@
   		);
 		
     </script>
-  </head>
-  <body>
-  	<div id="container">
-{% include "/header.html" %}  <div id="content-container">
-    <div id="content">
+{% endblock %}
+{% block content %}
       		Please wait a couple seconds while your request is processed...
-
-  </div>
-  </div>
-</div>
-    <div id="footer">
-      Copyright © Jose Juan Tapia, 2015
-    </div>
-
-  </body>
-</html>
-{% endautoescape %}
+{% endblock %}

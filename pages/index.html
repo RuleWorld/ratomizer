@@ -1,26 +1,10 @@
-<!DOCTYPE html>
-{% autoescape true %}<html>
-<head>
- <link rel="stylesheet" type="text/css" href="script/style.css">
- <link rel="stylesheet" href="https://yui-s.yahooapis.com/pure/0.6.0/pure-min.css">
- <link rel="stylesheet" href="../script/font.css">
- <link rel="stylesheet" href="../script/baby-blue.css">
-  </head>
-  <body>
-<div id="container">
-{% include "/header.html" %}  <div id="content-container">
-    <div id="content">
+{% extends "pages/template.html" %}
+{% block dependencies %}
+
+{% endblock %}
+
+{% block content %}
     Welcome to the Reaction Atomizer website. This is a repository of tools I have developed to facilitate the use of rule-based modeling. If you have an SBML file, head over to the Atomizer section so that we can perform some analysis on it! If you have a BNGL file you can head directly to one of the other sections (visualization, comparison).
     <br/><br/>
     You can also visit the <a href="https://ruleworld.github.io/atomizer/">user manual</a> for more details on how to use these tools.
-   </div>
-    </div>
-    
-    <div id="footer">
-      Copyright © Jose Juan Tapia, 2015
-    </div>
-  </div>
-</div>
-  </body>
-</html>
-{% endautoescape %}
+{% endblock %}

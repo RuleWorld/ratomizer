@@ -1,3 +1,9 @@
+html
+{
+    font-size: 100%;
+}
+
+
 #container
 {
 	margin: 0 auto;
@@ -105,3 +111,4 @@
     opacity: 0;
     filter: alpha(opacity=0);
 }
+
