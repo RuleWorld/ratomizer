@@ -222,8 +222,17 @@ class WaitFile(webapp2.RequestHandler):
                 blob_key = CreateFile(gcs_filename, result[0].decode('utf-8', 'replace'))
 
                 log_contents = result[1].decode('utf-8', 'replace')
-                print '------', log_contents
-                parsedContents = parseLog(log_contents)
+                parsedContents = parseLog(log_contents, result[2]['rawreactions'])
+                helper = {}
+                for element in result[2]['finalspecies']:
+                    helper[element] = ''
+                    for reaction in result[2]['rawreactions']:
+                        if element in [x[0] for x in reaction['reactants']] or element in [x[0] for x in reaction['products']]:
+                            if len(reaction['reactants']) > 0 and len(reaction['products']) > 0:
+                                tmp = '{0} -> {1};<br/>'.format(' + '.join([x[0] for x in reaction['reactants']]), ' + '.join([x[0] for x in reaction['products']]))
+                                tmp.replace(' {0} '.format(element), ' <b>{0}</b>'.format(element))
+                                helper[element] += tmp
+                finalspecies = sorted(result[2]['finalspecies'])
                 # there's some issues in teh atomization process/we know because the log has a non-zero length
                 if len(result[1]) > 0:
                     gcs_filename2 = '/{1}/{0}.log'.format(fileName, bucket_name)
@@ -238,6 +247,7 @@ class WaitFile(webapp2.RequestHandler):
                         template_values['message'] = '<div class="alert alert-warning">The atomization process contains warnings. Please check the warning tab for instructions on what information needs to be verified.  Then click on the Generate JSON button to generate a user configuration file for Atomizer.</div>'
                     else:
                         template_values['message'] = '<div class="alert alert-success">There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</div>'
+                        
                         #template_values['message'] = '<p>There are no significant atomization issues, model is ready for use. Please check the log file to review any minor issues that might have surfaced.</p></br>'
 
                     template_values['atolink'] = '<a href="/serve/{1}?key={0}">{1}</a><br/>'.format(blob_key, fileName)
@@ -249,9 +259,13 @@ class WaitFile(webapp2.RequestHandler):
                     template_values['biogrid'] = parsedContents['biogrid']
                     template_values['conflict'] = parsedContents['conflict']
                     template_values['nolexicalconflict'] = parsedContents['nolexicalconflict']
-
+                    template_values['equivalences'] = parsedContents['equivalences']
+                    template_values['cycles'] = parsedContents['cycles']
+                    template_values['samedef'] = parsedContents['samedef']
+                    template_values['finalspecies'] = finalspecies
                     template_values['jsonbonds'] = self.get_cookie('jsonbonds', '')
                     template_values['jsonstoich'] = self.get_cookie('jsonstoich', '')
+                    template_values['helper'] = helper
                     template = JINJA_ENVIRONMENT.get_template('pages/atomizationResults.html')
 
                     printStatement = template.render(template_values)

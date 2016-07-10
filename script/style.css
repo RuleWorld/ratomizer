@@ -112,3 +112,8 @@ html
     filter: alpha(opacity=0);
 }
 
+
+.tooltip-inner {
+    max-width: none;
+
+}

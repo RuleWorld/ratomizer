@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% autoescape true %}
 
+
 <link rel="stylesheet" href="../script/bower_components/codemirror/lib/codemirror.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js" type="text/javascript" charset="utf-8"></script>
 
@@ -20,6 +21,19 @@ if( $.cookie('jsonbonds') != null && $.cookie('jsonbonds') != ""){
     temp += $.cookie('jsonbonds');
 }
 
+//adds a string format function
+if (!String.prototype.format) {
+    String.prototype.format = function() {
+        var str = this.toString();
+        if (!arguments.length)
+            return str;
+        var args = typeof arguments[0],
+            args = (("string" == args || "number" == args) ? arguments : arguments[0]);
+        for (arg in args)
+            str = str.replace(RegExp("\\{" + arg + "\\}", "gi"), args[arg]);
+        return str;
+    }
+}
 
 //var textArea = document.getElementById('bondsjsonarea');
 //var editor = CodeMirror.fromTextArea(textArea);
@@ -115,18 +129,52 @@ function generateJson() {
     {% endfor %}    
 
     {% for radioIdx in range(modstoich|length) %}
-        if($("input[name=modstoich_{{radioIdx}}]:checked").val()) {
+        var internalCounter = 0;
+        var internalstoich = "";
+        $.each($("input[name=modstoich_{{radioIdx}}]:checked"), function(){            
+            if(internalCounter != 0){
+                internalstoich +=", ";
+            }
+            var modspecies = $("#{0}_other".format($(this).attr('id'))).val();
+            var flag = false;
+            if(modspecies == "" || modspecies == undefined){
+                modspecies = "{0}mod".format($(this).val());
+                flag = true;
+            }
+            else{
+                if($("input[name={0}_new]:checked".format($(this).attr('id'))).val()){
+                    flag = true;
+                }
+            }
+            internalstoich += '"{0}"'.format(modspecies);
+            internalCounter += 1;
+            if(flag == true){
+                if(counter != 0){
+                    localstoich +=",\n";
+                }
+                counter +=1;
+                localstoich += '"{0}":["{1}"]'.format(modspecies, $(this).val());
+            }
+
+        });
+        if(internalCounter > 0){
+            $.each($("input[name=modstoich_{{radioIdx}}]:not(:checked)"), function(){            
+                if(internalCounter != 0){
+                    internalstoich +=", ";
+                }
+                internalstoich += '"{0}"'.format($(this).val());
+                internalCounter += 1;
+
+            });
             if(counter != 0){
                 localstoich +=",\n";
             }
 
-            localstoich += $('input[name=modstoich_{{radioIdx}}]:checked','#atoform').val();
-            counter += 1;
-            //{% if(radioIdx < stoich|length -1 ) %}
-            //    localstoich += ",";
-            //{% endif %}
-            //localstoich += "\n";
-    }
+            var complexName = $('input[name=modstoich_0_complex]').val();
+            localstoich += '"{0}":[{1}]'.format(complexName, internalstoich);
+            counter +=1;
+        }
+        
     {% endfor %}    
 
 
@@ -151,6 +199,81 @@ function generateJson() {
             counter += 1;
     }
     {% endfor %}    
+
+
+    {% for radioIdx in range(equivalences|length) %}
+        if($("input[name=equi_{{radioIdx}}]:checked").val()) {
+            baseMolecule = $('input[name=equi_{{radioIdx}}]:checked','#atoform').val();
+            if(baseMolecule == 'otherField'){
+                baseMolecule = $("#equi_{{radioIdx}}_other").val();
+                baseMolecule = $("#equi_{{radioIdx}}_option").val();
+                if(baseMolecule == 'newspecies'){
+                    baseMolecule = $("#equi_{{radioIdx}}_other").val();
+                }
+            }
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+            localstoich += '"{0}":[]'.format(baseMolecule)
+            counter += 1;
+            var localArray = {{equivalences[radioIdx][1]|safe}};
+            for(var idx =0; idx < localArray.length; idx ++){
+                if (localArray[idx] != baseMolecule){
+                    localstoich += ',\n"{0}":["{1}"]'.format(localArray[idx], baseMolecule);
+                }
+            }
+        }
+    {% endfor %}
+    {% for radioIdx in range(cycles|length) %}
+        if($("input[name=cycle_{{radioIdx}}]:checked").val()) {
+            baseMolecule = $('input[name=cycle_{{radioIdx}}]:checked','#atoform').val();
+            if(baseMolecule == 'otherField'){
+                baseMolecule = $("#cycle_{{radioIdx}}_other").val();
+            }
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+            counter += 1;
+            localstoich += '"{0}":[]'.format(baseMolecule)
+            var localArray = {{cycles[radioIdx][1]|safe}};
+            for(var idx =0; idx < localArray.length; idx ++){
+                if (localArray[idx] != baseMolecule){
+                    localstoich += ',\n"{0}":["{1}"]'.format(localArray[idx], baseMolecule);
+                }
+            }
+        }
+    {% endfor %}
+    {% for radioIdx in range(samedef|length) %}
+        if($("input[name=samedef_{{radioIdx}}_select]:checked").val()) {
+            var baseMolecule = $('#samedef_{{radioIdx}}').val();
+            var tempstoich = "";
+            var localcounter = 0;
+            {% for subidx in range(samedef[radioIdx][1]|length) %}
+                if(localcounter != 0){
+                    tempstoich += ", ";
+                }
+                if($('#samedef_{{radioIdx}}_{{subidx}}_option').val() == "newspecies"){
+                    tempstoich += '"{0}"'.format($('#samedef_{{radioIdx}}_{{subidx}}').val());
+                    if(counter != 0){
+                        localstoich +=",\n";
+                    }
+                    localstoich += '"{0}":[]'.format($('#samedef_{{radioIdx}}_{{subidx}}').val());
+                    counter +=1;
+                }
+                else{
+                    tempstoich += '"{0}"'.format($('#samedef_{{radioIdx}}_{{subidx}}_option').val());    
+                }
+                localcounter += 1;
+                
+
+            {% endfor %}
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+            localstoich += '"{0}":[{1}]'.format(baseMolecule, tempstoich);
+            counter += 1;
+        }
+    {% endfor %}
 
     txt += localstoich;
 
@@ -188,12 +311,13 @@ function jsonFields() {
 
 
 
-<form class="pure-form pure-form-stacked" id="atoform" name="atoform" action="/postprocess" method="post" onsubmit="jsonFields()">
+<form class="pure-form" id="atoform" name="atoform" action="/postprocess" method="post" onsubmit="jsonFields()">
 
   <ul class="nav nav-tabs">
   <li class="active"><a data-toggle="tab" href="#home">Atomization status</a></li>
-    <li><a data-toggle="tab" href="#errormenu">Errors ({{ stoich|length + bonds|length + modstoich|length + biogrid|length}})</a></li>
+    <li><a data-toggle="tab" href="#errormenu">Errors ({{ stoich|length + bonds|length + modstoich|length + biogrid|length + samedef|length}})</a></li>
     <li><a data-toggle="tab" href="#warningmenu">Warnings ({{conflict|length + nolexicalconflict|length}})</a></li>
+    <li><a data-toggle="tab" href="#improvementmenu">Improvements ({{equivalences|length + cycles|length}})</a></li>
   </ul>
 
 <div class="tab-content">
@@ -215,12 +339,14 @@ function jsonFields() {
                       <div class="panel-body">
 
                         {% for bond in bonds %}
-                            <b>{{bond[0]}}</b>
+                            {% for species in bond[0] %}
+                                <a href="#" data-toggle="tooltip" title="{{helper[species]|safe}}">{{species}}/</a>
+                            {% endfor %}
 
                             {% set rowloop = loop %}
                             {% for sample in bond[1] %}
                                 <label for="bond_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                                    <input id="bond_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="bonds_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                    <input id="bond_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="bonds_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}} 
                                 </label>
 
                             {% endfor %}
@@ -242,8 +368,7 @@ function jsonFields() {
                         <div class="panel-body">
                             <fieldset>
                             {% for st in stoich %}
-
-                                <b>{{st[0]}}</b>
+                                <a href="#" data-toggle="tooltip" title="{{helper[st[0]]|safe}}">{{st[0]}}</a>
                                 {% set rowloop = loop %}
                                 {% for sample in st[1] %}
                                     <label for="stoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
@@ -263,21 +388,29 @@ function jsonFields() {
                     <div class="panel-heading">
                       <h3 class="panel-title">
                         <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll3">
-                        &raquo; Atomizer needs help determining which subunit in the following complexes is modified</a></h3>
+                        &raquo; Atomizer needs help determining which molecule in the following complexes is modified. Please select
+                        which among the following molecules is modified along with the corresponding modification.</a></h3>
                     </div>
                     <div id="coll1_coll3" class="panel-collapse collapse">
                       <div class="panel-body">
 
                     <fieldset>
                     {% for st in modstoich %}
-
+                        
                         <b>{{st[1]}}</b> becomes <b>{{st[0]}}</b>
                         {% set rowloop = loop %}
+                        <fieldset>
+                        <input type="hidden" name="modstoich_{{rowloop.index0}}_complex" value="{{st[0]}}" />
                         {% for sample in st[2] %}
-                            <label for="modstoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
-                                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="modstoich_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
-                            </label>
+                            
 
+                            <label for="modstoich_{{rowloop.index0}}_{{loop.index0}}" class="pure-checkbox">
+                                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}" type="checkbox" name="modstoich_{{rowloop.index0}}" value="{{sample[0]}}"> {{sample[0]}}</label> 
+                                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}_other" name=id="modstoich_{{rowloop.index0}}_{{loop.index0}}_other" type="text" placeholder="Modified Species" 
+                                data-toggle="tooltip" title="Provide the modified species associated to the product." data-placement="bottom"/>
+                                <input id="modstoich_{{rowloop.index0}}_{{loop.index0}}_new" type="checkbox" name="modstoich_{{rowloop.index0}}_{{loop.index0}}_new" value='["{{sample[0]}}"]' data-toggle="tooltip" title="Click here if the species in the checkbox is a new species" data-placement="right"> 
+
+                            </fieldset>
                         {% endfor %}
                     <br/>
                     {%endfor %}
@@ -311,6 +444,68 @@ function jsonFields() {
                         {%endfor %}
                         </div>
                     </div>
+                </div>
+            {% endif %}
+            {%if(samedef|length) > 0 %}
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                      <h3 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll4">
+                        &raquo; The following species produce the same translation. Please adjust  the stoichiometry of one them accordingly by clicking on
+                        the checkbox and selecting appropiate alternatives</a></h3>
+                    </div>
+                    <div id="coll1_coll4" class="panel-collapse collapse">
+                      <div class="panel-body">
+                        {% for sd in samedef %}
+                            <!-- overlapping species -->
+                            <div class="pure-u-1 pure-u-md-1-3">
+                            <input id="samedef_{{loop.index0}}_select" type="checkbox" name="samedef_{{loop.index0}}_select"  data-toggle="tooltip" title="Select between {{sd[0]}}" data-placement="top"> 
+                            <select id="samedef_{{loop.index0}}" class="pure-input-1-2" disabled>
+                                {% for option in sd[0] %}
+                                    <option value={{option}}>{{option}}</option>
+                                {% endfor %}
+                            </select>
+                            </div><br/>
+                            {% set rowloop = loop %}
+
+                            {% for option in sd[1] %}
+                                 <select id="samedef_{{rowloop.index0}}_{{loop.index0}}_option" class="pure-input-1-2" disabled>
+                                    {% for species in finalspecies %}
+                                        <option value={{species}} {% if(option == species) %} selected {% endif %}>{{species}}</option>
+                                    {% endfor %}
+                                    <option value="newspecies">New Species</option>
+                                </select>
+                                <input id="samedef_{{rowloop.index0}}_{{loop.index0}}" name="samedef_{{rowloop.index0}}_{{loop.index0}}" type="text" placeholder="{{option}}" disabled>
+                                <br/>
+                                <script>
+                                $("#samedef_{{rowloop.index0}}_{{loop.index0}}").hide();
+
+                                $('#samedef_{{rowloop.index0}}_{{loop.index0}}_option').on('change',function(){
+                                     if( $(this).val()==="newspecies"){
+                                        $("#samedef_{{rowloop.index0}}_{{loop.index0}}").show();
+                                     }
+                                     else{
+                                        $("#samedef_{{rowloop.index0}}_{{loop.index0}}").hide();
+                                     }
+                                });
+                                </script>
+                            {% endfor %}
+                            <!-- textboxs with options -->
+                            <script>
+                                $('#samedef_{{rowloop.index0}}_select').change(function(){
+                                    $("#samedef_{{loop.index0}}").prop("disabled", !$(this).is(':checked'));
+                                    {% for option in sd[1] %}
+                                        $("#samedef_{{rowloop.index0}}_{{loop.index0}}_option").prop("disabled", !$(this).is(':checked'));
+                                        $("#samedef_{{rowloop.index0}}_{{loop.index0}}").prop("disabled", !$(this).is(':checked'));
+                                    {% endfor %}
+                                });
+                            </script>
+
+                        {% endfor %}
+
+                      </div>
+                    </div>
+
                 </div>
             {% endif %}
         </div>
@@ -373,6 +568,114 @@ function jsonFields() {
             </div>
         </div>
     </div>
+
+    <div id = "improvementmenu" class="tab-pane" fade">
+        <h3><font color="blue"> &raquo; The following changes can be done to improve the atomization quality: </font></h3>
+        <div class="panel-group" id="coll3_accordion">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                    <a data-toggle="collapse" data-parent="#coll3_accordion" href="#coll3_coll1">
+                    &raquo; Atomizer detected that the following species are equivalent to each other so one of them was selected 
+                    as the base molecule. Please indicate if this is appropiate or provide an alternative.</a></h3>
+                </div>
+                <div id="coll3_coll1" class="panel-collapse collapse in">
+                    <div class="panel-body">
+
+                        <fieldset>
+
+                        {% for st in equivalences %}
+                            <b>Current base molecule: {{st[0][0]}}</b>
+                            {% set rowloop = loop %}
+                            {% for sample in st[0] %}
+                                <label for="equi_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="equi_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="equi_{{rowloop.index0}}" value="{{sample}}"> {{sample}}
+                            </label>
+                            {% endfor %}
+
+                            <label for="equi_{{rowloop.index0}}_{{st[0]|length}}" class="pure-radio">
+                                <input id="equi_{{rowloop.index0}}_{{st[0]|length}}" type="radio" name="equi_{{rowloop.index0}}" value="otherField"> Other: <select id="equi_{{rowloop.index0}}_option" class="pure-input-1-2" disabled>
+                                                    {% for option in finalspecies %}
+                                                        <option value={{option}}>{{option}}</option>
+                                                    {% endfor %}
+                                                    <option value="newspecies">New Species</option>
+                                                    </select>
+
+                                <input id="equi_{{rowloop.index0}}_other" name=id="equi_{{rowloop.index0}}_other" type="text" placeholder="New species name">
+                            </label>
+                            <script>
+                                $('#equi_{{rowloop.index0}}_{{st[0]|length}}').change(function(){
+                                    $("#equi_{{rowloop.index0}}_option").attr("disabled", !this.checked);
+                                });
+                                $("#equi_{{rowloop.index0}}_other").hide();
+                                $('#equi_{{rowloop.index0}}_option').on('change',function(){
+                                     if( $(this).val()==="newspecies" && $("#equi_{{rowloop.index0}}_{{st[0]|length}}").is(':checked')){
+                                        $("#equi_{{rowloop.index0}}_other").show();
+                                     }
+                                     else{
+                                        $("#equi_{{rowloop.index0}}_other").hide();
+                                     }
+                                });
+                            </script>
+                            <br/>
+                        {%endfor %}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                    <a data-toggle="collapse" data-parent="#coll3_accordion" href="#coll3_coll2">
+                    &raquo; The following species have cyclic dependencies. Select the base species or provide your own</a></h3>
+                </div>
+                <div id="coll3_coll2" class="panel-collapse collapse">
+                    <div class="panel-body">
+
+                        <fieldset>
+
+                        {% for st in cycles %}
+                            {% set rowloop = loop %}
+                            {% for sample in st[0] %}
+                                <label for="cycle_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="cycle_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="cycle_{{rowloop.index0}}" value="{{sample}}"> {{sample}}
+                            </label>
+                            {% endfor %}
+                            <label for="cycle_{{rowloop.index0}}_{{st[0]|length}}" class="pure-radio">
+                                <input id="cycle_{{rowloop.index0}}_{{st[0]|length}}" type="radio" name="cycle_{{rowloop.index0}}" value="otherField"> Other: <select id="cycle_{{rowloop.index0}}_option" class="pure-input-1-2" disabled>
+                                                    {% for option in finalspecies %}
+                                                        <option value={{option}}>{{option}}</option>
+                                                    {% endfor %}
+                                                    <option value="newspecies">New Species</option>
+                                                    </select>
+
+                                <input id="cycle_{{rowloop.index0}}_other" name=id="cycle_{{rowloop.index0}}_other" type="text" placeholder="New species name">
+                            </label>
+
+                            <script>
+                                $('#cycle_{{rowloop.index0}}_{{st[0]|length}}').change(function(){
+                                    $("#cycle_{{rowloop.index0}}_option").attr("disabled", !this.checked);
+                                });
+                                $("#cycle_{{rowloop.index0}}_other").hide();
+                                $('#cycle_{{rowloop.index0}}_option').on('change',function(){
+                                     if( $(this).val()==="newspecies" && $("#cycle_{{rowloop.index0}}_{{st[0]|length}}").is(':checked')){
+                                        $("#cycle_{{rowloop.index0}}_other").show();
+                                     }
+                                     else{
+                                        $("#cycle_{{rowloop.index0}}_other").hide();
+                                     }
+                                });
+                               </script>
+
+                            <br/>
+                        {%endfor %}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+
+        </div>        
+    </div>
 </div>
 
 
@@ -406,7 +709,8 @@ function jsonFields() {
     <button type="submit" data-toggle="tooltip" title="Send the file for atomization with the options defined above" class="button-success pure-button">Submit</button><br/>
     <script>
         $(document).ready(function(){
-        $('[data-toggle="tooltip"]').tooltip();
+        $('[data-toggle="tooltip"]').tooltip({html: true, container: "body"});
+
         });
     </script>
 </form>
