@@ -170,7 +170,7 @@ function generateJson() {
                 localstoich +=",\n";
             }
 
-            var complexName = $('input[name=modstoich_0_complex]').val();
+            var complexName = $('input[name=modstoich_{{radioIdx}}_complex]').val();
             localstoich += '"{0}":[{1}]'.format(complexName, internalstoich);
             counter +=1;
         }
@@ -200,8 +200,9 @@ function generateJson() {
     }
     {% endfor %}    
 
-
+    var writeflag;
     {% for radioIdx in range(equivalences|length) %}
+        writeflag = true;
         if($("input[name=equi_{{radioIdx}}]:checked").val()) {
             baseMolecule = $('input[name=equi_{{radioIdx}}]:checked','#atoform').val();
             if(baseMolecule == 'otherField'){
@@ -209,17 +210,30 @@ function generateJson() {
                 baseMolecule = $("#equi_{{radioIdx}}_option").val();
                 if(baseMolecule == 'newspecies'){
                     baseMolecule = $("#equi_{{radioIdx}}_other").val();
+                }  
+            }
+            else if(baseMolecule == 'none'){
+                var localArray = {{equivalences[radioIdx][1]|safe}};
+                for(var idx =0; idx < localArray.length; idx ++){
+                    if(counter != 0){
+                        localstoich +=",\n";
+                    }
+                    localstoich += '"{0}":[]'.format(localArray[idx]);
+                    counter += 1;
                 }
+                writeflag = false;
             }
-            if(counter != 0){
-                localstoich +=",\n";
-            }
-            localstoich += '"{0}":[]'.format(baseMolecule)
-            counter += 1;
-            var localArray = {{equivalences[radioIdx][1]|safe}};
-            for(var idx =0; idx < localArray.length; idx ++){
-                if (localArray[idx] != baseMolecule){
-                    localstoich += ',\n"{0}":["{1}"]'.format(localArray[idx], baseMolecule);
+            if(writeflag){
+                if(counter != 0){
+                    localstoich +=",\n";
+                }
+                localstoich += '"{0}":[]'.format(baseMolecule)
+                counter += 1;
+                var localArray = {{equivalences[radioIdx][1]|safe}};
+                for(var idx =0; idx < localArray.length; idx ++){
+                    if (localArray[idx] != baseMolecule){
+                        localstoich += ',\n"{0}":["{1}"]'.format(localArray[idx], baseMolecule);
+                    }
                 }
             }
         }
@@ -450,11 +464,11 @@ function jsonFields() {
                 <div class="panel panel-default">
                     <div class="panel-heading">
                       <h3 class="panel-title">
-                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll4">
+                        <a data-toggle="collapse" data-parent="#coll1_accordion" href="#coll1_coll5">
                         &raquo; The following species produce the same translation. Please adjust  the stoichiometry of one them accordingly by clicking on
                         the checkbox and selecting appropiate alternatives</a></h3>
                     </div>
-                    <div id="coll1_coll4" class="panel-collapse collapse">
+                    <div id="coll1_coll5" class="panel-collapse collapse">
                       <div class="panel-body">
                         {% for sd in samedef %}
                             <!-- overlapping species -->
@@ -590,7 +604,7 @@ function jsonFields() {
                             {% for sample in st[0] %}
                                 <label for="equi_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
                                     <input id="equi_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="equi_{{rowloop.index0}}" value="{{sample}}"> {{sample}}
-                            </label>
+                                </label>
                             {% endfor %}
 
                             <label for="equi_{{rowloop.index0}}_{{st[0]|length}}" class="pure-radio">
@@ -602,6 +616,9 @@ function jsonFields() {
                                                     </select>
 
                                 <input id="equi_{{rowloop.index0}}_other" name=id="equi_{{rowloop.index0}}_other" type="text" placeholder="New species name">
+                            </label>
+                            <label for="equi_{{rowloop.index0}}_none" class="pure-radio">
+                                    <input id="equi_{{rowloop.index0}}_none" type="radio" data-toggle="tooltip" title="Select this option only if all species in this set are base molecule types" name="equi_{{rowloop.index0}}" value="none"> None
                             </label>
                             <script>
                                 $('#equi_{{rowloop.index0}}_{{st[0]|length}}').change(function(){
