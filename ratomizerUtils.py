@@ -57,7 +57,6 @@ def parseLog(rawLog, rawReactions):
             for splitoption in eval(splitentry[4]):
                 optionstxt = '"{0}":{1}'.format(splitentry[2], json.dumps(splitoption))
                 options.append((str(splitoption).translate(None, "'"), optionstxt))
-            print options
             categorizedLog['conflict'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
 
         elif 'SCT113' in splitentry[0]:
@@ -72,8 +71,10 @@ def parseLog(rawLog, rawReactions):
             # place the option choose by atomizer as the first radio button            
             if(i > 0):
                 options[i], options[0] = options[0], options[i]
-            categorizedLog['nolexicalconflict'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
-
+            if len(eval(splitentry[6])) > 1:
+                categorizedLog['nolexicalconflict'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
+            else:
+                categorizedLog['modificationAmbiguity'].append((str(splitentry[2]).translate(None, "'"), str(splitentry[6]).translate(None, "'"), options))
         elif 'SCT212' in splitentry[0]:
             options = set([])
             candidates = eval(splitentry[5])

@@ -200,6 +200,19 @@ function generateJson() {
     }
     {% endfor %}    
 
+    {% for radioIdx in range(modificationAmbiguity|length) %}
+        if($("input[name=modamb_{{radioIdx}}]:checked").val()) {
+            if(counter != 0){
+                localstoich +=",\n";
+            }
+
+            localstoich += $('input[name=modamb_{{radioIdx}}]:checked','#atoform').val();
+            counter += 1;
+    }
+    {% endfor %}    
+
+
+
     var writeflag;
     {% for radioIdx in range(equivalences|length) %}
         writeflag = true;
@@ -331,7 +344,7 @@ function jsonFields() {
   <li class="active"><a data-toggle="tab" href="#home">Atomization status</a></li>
     <li><a data-toggle="tab" href="#errormenu">Errors ({{ stoich|length + bonds|length + modstoich|length + biogrid|length + samedef|length}})</a></li>
     <li><a data-toggle="tab" href="#warningmenu">Warnings ({{conflict|length + nolexicalconflict|length}})</a></li>
-    <li><a data-toggle="tab" href="#improvementmenu">Improvements ({{equivalences|length + cycles|length}})</a></li>
+    <li><a data-toggle="tab" href="#improvementmenu">Improvements ({{equivalences|length + cycles|length + modificationAmbiguity|length}})</a></li>
   </ul>
 
 <div class="tab-content">
@@ -566,8 +579,7 @@ function jsonFields() {
 
                         <fieldset>
                         {% for st in nolexicalconflict %}
-
-                                <b>{{st[0]}}</b>, defined as <b>{{st[1]}}</b>.
+                                <a href="#" data-toggle="tooltip" title="{{helper[st[0]]|safe}}">{{st[0]}}</a>, defined as <b>{{st[1]}}</b>
                                 {% set rowloop = loop %}
                                 {% for sample in st[2] %}
                                 <label for="nlconfl_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
@@ -689,8 +701,33 @@ function jsonFields() {
                         </fieldset>
                     </div>
                 </div>
-            </div>
 
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                <a data-toggle="collapse" data-parent="#coll3_accordion" href="#coll3_coll3">
+                    &raquo; The modification order of the following complexes is unclear. Please provide the appropiate modification path in the following cases.</a></h3>
+                </div>
+                <div id="coll3_coll3" class="panel-collapse collapse">
+                  <div class="panel-body">
+
+                        <fieldset>
+                        {% for st in modificationAmbiguity %}
+
+                                <a href="#" data-toggle="tooltip" title="{{helper[st[0]]|safe}}">{{st[0]}}</a>, modified from <b>{{st[1]}}</b>.
+                                {% set rowloop = loop %}
+                                {% for sample in st[2] %}
+                                <label for="modamb_{{rowloop.index0}}_{{loop.index0}}" class="pure-radio">
+                                    <input id="modamb_{{rowloop.index0}}_{{loop.index0}}" type="radio" name="modamb_{{rowloop.index0}}" value="{{sample[1]}}"> {{sample[0]}}
+                                </label>
+                            {% endfor %}
+                        <br/>
+                        {%endfor %}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
         </div>        
     </div>
 </div>

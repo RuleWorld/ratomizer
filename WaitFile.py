@@ -96,7 +96,7 @@ def CreateFile(filename, content, content_type='binary/octet-stream'):
     """
     # Create a GCS file with GCS client.
     with gcs.open(filename, mode='w', content_type=content_type) as f:
-        f.write(content.encode('utf-8', 'replace'))
+        f.write(content.encode('utf-8'))
 
     # Blobstore API requires extra /gs to distinguish against blobstore files.
     blobstore_filename = '/gs' + filename
@@ -259,6 +259,7 @@ class WaitFile(webapp2.RequestHandler):
                     template_values['biogrid'] = parsedContents['biogrid']
                     template_values['conflict'] = parsedContents['conflict']
                     template_values['nolexicalconflict'] = parsedContents['nolexicalconflict']
+                    template_values['modificationAmbiguity'] = parsedContents['modificationAmbiguity']
                     template_values['equivalences'] = parsedContents['equivalences']
                     template_values['cycles'] = parsedContents['cycles']
                     template_values['samedef'] = parsedContents['samedef']
@@ -308,8 +309,8 @@ class WaitFile(webapp2.RequestHandler):
 
                 graphType = self.get_cookie('graphType')
                 print graphType 
-                if graphType in ['contactmap', 'regulatory']:
-                    blob_key = CreateFile(gcs_filename, result['gmlStr'].decode('utf-8', 'replace'))
+                if graphType in ['contactmap', 'regulatory','std']:
+                    blob_key = CreateFile(gcs_filename, result['gmlStr'])
                 else:
                     blob_key = CreateFile(gcs_filename, convert(result).decode('utf-8', 'replace'))
                 ###
@@ -324,9 +325,9 @@ class WaitFile(webapp2.RequestHandler):
                 #p2 = output.read()
                 self.response.write(printStatement)
 
-                if graphType in ['contactmap', 'regulatory']:
+                if graphType in ['contactmap', 'regulatory','std']:
                     gcs_filename = '/{1}/{0}.json'.format(fileName, bucket_name)
-                    blob_key2 = CreateFile(gcs_filename, result['jsonStr'].decode('utf-8', 'replace'))
+                    blob_key2 = CreateFile(gcs_filename, result['jsonStr'])
                     self.response.write('<br><a target="_blank" href="/visualize?mapType={0}&jsonBlob={1}">Visualize graph online</a>'.format(self.request.get('graphType'), blob_key2))
 
             elif resultMethod == 'compare':
@@ -417,20 +418,23 @@ class Visualize(WaitFile):
     '''
     def get(self):
         mapType = self.get_cookie('graphType')
-        print '---', mapType
         template_values = {}
-
         if mapType == 'series':
             template_values['data'] = convert(model['timeSeriesJson'])
             template = JINJA_ENVIRONMENT.get_template('/pages/visualizeSeries.html')
             self.response.write(template.render(template_values))
         else:
-            modelMap = json.loads(blobstore.fetch_data(self.request.get('jsonBlob'), 0, 900000))
+            graphstr = blobstore.fetch_data(self.request.get('jsonBlob'), 0, 900000)
+            graphstr = graphstr.encode('utf-8')
+            print graphstr
+            graphstr = graphstr.replace("\u25cf",'o')
+            graphstr =graphstr.replace("\u25cb",'x')
+            modelMap = json.loads(graphstr)
             if mapType == 'contactmap':
                 template_values['layout2'] = "{'coolingFactor': 0.95, 'initialTemp': 200,'nodeRepulsion': 100, 'nodeOverlap': 10, 'gravity': 650, 'padding': 4, 'name': 'cose', 'nestingFactor': 2, 'initialTemp ': 2000, 'minTemp': 1, 'numIter': 100, 'edgeElasticity': 500, 'idealEdgeLength': 10}"
                 template_values['targetshape'] = "none"
                 template_values['typecolor'] = '#fff'
-            elif mapType == 'regulatory':
+            elif mapType in ['regulatory','std']:
                 template_values['targetshape'] = "triangle"
                 template_values['layout2'] = "{'name': 'dagre','fit':true,'padding':30,'directed': false}"
                 template_values['typecolor'] = '#000'
