@@ -83,7 +83,7 @@ $('#cy').cytoscape({
       css: {
         'content': 'data(label)',
         'shape': 'data(faveShape)',
-        'width': 'mapData(weight, 40, 80, 90, 80)',
+        'width': 'mapData(weight, 40, 200, 90, 80)',
         'text-valign': 'center',
         'text-halign': 'center',
         'text-outline-width': 2,
@@ -107,9 +107,9 @@ $('#cy').cytoscape({
       selector: 'edge',
       css: {
         'target-arrow-shape': '{{targetshape}}',
-        'line-color': 'data(faveColor)',
-        'source-arrow-color': 'data(faveColor)',
-        'target-arrow-color': 'data(faveColor)'
+        'line-color': 'black',
+        'source-arrow-color': 'black',
+        'target-arrow-color': 'black'
 
       }
     },
